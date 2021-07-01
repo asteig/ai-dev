@@ -1,67 +1,16 @@
+# python packages
 from sh import tail
 import json
-import re 
-import utils 
-import random
 
-STATUS_QUEUED = "queued"
-STATUS_ACTIVE = 'active'
-STATUS_SUCCESS = 'success'
-STATUS_FAILED = 'failed'
-STATUS_COMPLETE = 'complete'
-
-REGEX_FAILED = r'(That doesn\'t work\.$|Try something else\.$|What\?$)'
-
-# utils
-def colorNote(txt, color=False, bg=False, bold=False):
-	color = color if color else random.randint(1, 125)
-	bg = bg if bg else random.randint(100, 255)
-	color_code = '\033[38;5;%dm' % color
-	bg_code = '\033[48;5;%dm' % bg if bg else ''
-	print(color_code + bg_code + txt + '\033[0m')
-
-CMD_CAPTURES = {
-	'i': [
-		r'^You are (unburdened|burdened) \((?P<burden>\d+)\%\) by\:$',
-		r'^Holding \: (((?P<left>.+)) \(left hand\)|)((( and |)(?P<right>.+)) \(right hand\)\.$|)',
-		r'^Wearing \: (?P<wearing>.+)\.$',
-		r'^\(under\) \: (?P<under>.+)\.$',
-		r'^Carrying\: (?P<carrying>.+)\.$',
-		r'^Your purse contains (?P<purse>.+)\.$'
-	],
-	'l': [
-		r'{"identifier":"(?P<identifier>.+)","name":"(?P<name>.+)","visibility":(?P<visibility>\d+),"kind":"(?P<kind>.+)"}$',
-		r'^\[(?P<shortname>.+)\]$',
-		#r'^.{1,10}$',
-		r'^There are .+ obvious exit(s|)\: (?P<exits>.+)\.$',
-	]
-}
-
-
-
-
-
-# aliases for directionals
-CMD_CAPTURES['n'] = CMD_CAPTURES['l']
-CMD_CAPTURES['nw'] = CMD_CAPTURES['l']
-CMD_CAPTURES['ne'] = CMD_CAPTURES['l']
-
-CMD_CAPTURES['s'] = CMD_CAPTURES['l']
-CMD_CAPTURES['sw'] = CMD_CAPTURES['l']
-CMD_CAPTURES['se'] = CMD_CAPTURES['l']
-
-CMD_CAPTURES['e'] = CMD_CAPTURES['l']
-CMD_CAPTURES['w'] = CMD_CAPTURES['l']
-
-CMD_CAPTURES['up'] = CMD_CAPTURES['l']
-CMD_CAPTURES['down'] = CMD_CAPTURES['l']
+# my includes
+from utils import *
+from captures import *
 
 # queue of commands waiting to run...
 CMDS = []
 HISTORY = []
 
 # handle input from the player
-# manage initial queueing of commands...
 def handleCommandSent(packet):
 
 	cmd_txt = packet['cmd_txt']
@@ -76,7 +25,7 @@ def handleCommandSent(packet):
 			'captured': {},
 			'completed': False
 		}
-		print('queuing:', new_cmd['cmd_txt'])
+
 		CMDS.append(new_cmd)
 
 def handleTxtReceived(packet):
@@ -102,7 +51,6 @@ def handleTxtReceived(packet):
 	stop_capture = next_cmd['captures'][-1]
 	
 	if re.search(start_capture, sText):
-		colorNote('START CAPTURING!!!!!')
 		next_cmd['status'] = STATUS_ACTIVE
 	
 	if next_cmd['status'] == STATUS_ACTIVE:
@@ -114,27 +62,13 @@ def handleTxtReceived(packet):
 		captured = getCaptured(next_cmd['captures'], next_cmd['response'])
 		print(captured)
 		print('')
-		print('')
-		print('')
 		CMDS.pop(0)
-	
-
-def getCaptured(captures, lines):
-	
-	all_captured = {}
-	
-	for line in lines:
-		for regex in captures:
-			result = re.search(regex, line)
-			if result:
-				groups = result.groupdict()
-				captured = {k:v for k,v in groups.items() if v is not None}
-				all_captured.update(captured)
-	
-	return all_captured
+		
+		# ultimately need to update the agent some how... 
+		onCaptured(captured)
 
 
-def START():
+if __name__ == "__main__":
 	# basic stats
 	print('PLAYER:')
 	print('SESSION START:')
@@ -150,5 +84,3 @@ def START():
 				
 			if 'txt' in data:
 				handleTxtReceived(data)
-
-START()

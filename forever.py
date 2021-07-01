@@ -1,115 +1,150 @@
 from sh import tail
 import json
 import re 
+import utils 
 
 STATUS_QUEUED = 'queued'
 STATUS_ACTIVE = 'active'
-STATUS_COMPLETE = 'complete'
+STATUS_SUCCESS = 'success'
+STATUS_FAILED = 'failed'
 
-# because I like my globals. :)
+# utils
+def colorNote(txt, color=12, bg=False, bold=False):
+	color_code = '\033[38;5;%dm' % color
+	bg_code = '\033[48;5;%dm' % bg if bg else ''
+	print(color_code + bg_code + txt + '\033[0m')
+
 CMD_CAPTURES = {
 	'i': [
 		r'^You are (unburdened|burdened) \((?P<burden>\d+)\%\) by\:$',
-		r'^Holding \: (((?P<left>.+)) \(left hand\)|)((( and |)(?P<right>.+)) \(right hand\)|)',
+		r'^Holding \: (((?P<left>.+)) \(left hand\)|)((( and |)(?P<right>.+)) \(right hand\)\.$|)',
 		r'^Wearing \: (?P<wearing>.+)\.$',
-		r'^\(under\) \: (?P<under>.+)\.',
-		r'^Carrying\: (?P<carrying>.+)\.',
-		r'^Your purse contains (?P<purse>.+)\.'
+		r'^\(under\) \: (?P<under>.+)\.$',
+		r'^Carrying\: (?P<carrying>.+)\.$',
+		r'^Your purse contains (?P<purse>.+)\.$'
 	],
 	'l': [
+		r'{"identifier":"(?P<identifier>.+)","name":"(?P<name>.+)","visibility":(?P<visibility>\d+),"kind":"(?P<kind>.+)"}$',
 		r'^\[(?P<shortname>.+)\]$',
-		r'^.{10}$',
-		r'^There are .+ obvious exit(s|)\: (?P<exits>.+)\.$'
+		#r'^.{1,10}$',
+		r'^There are .+ obvious exit(s|)\: (?P<exits>.+)\.$',
 	]
 }
+
+# aliases for directionals
+CMD_CAPTURES['n'] = CMD_CAPTURES['l']
+CMD_CAPTURES['nw'] = CMD_CAPTURES['l']
+CMD_CAPTURES['ne'] = CMD_CAPTURES['l']
+
+CMD_CAPTURES['s'] = CMD_CAPTURES['l']
+CMD_CAPTURES['sw'] = CMD_CAPTURES['l']
+CMD_CAPTURES['se'] = CMD_CAPTURES['l']
+
+CMD_CAPTURES['e'] = CMD_CAPTURES['l']
+CMD_CAPTURES['w'] = CMD_CAPTURES['l']
 
 # queue of commands waiting to run...
 CMDS = []
 HISTORY = []
 
 # handle input from the player
-def handleInput(packet):
-
+# manage initial queueing of commands...
+def handleCommandSent(packet):
+	print(packet['cmd'])
 	# add to queue
 	# TODO: double check 2 packets dont come in at once (although sessions....)
 	cmd = packet['cmd']
-
-	# just humor two fake test commands...
-	if cmd not in CMD_CAPTURES:
-		return False
-
-	if cmd in CMD_CAPTURES:
-		captures = CMD_CAPTURES[cmd]
-	else:
-		captures = []
+	print('queueing the command.....', cmd)
 	
+	if cmd not in CMD_CAPTURES:
+		colorNote('WARNING: No captures for this command!')
+
+	# add new command to cmd queue
 	CMDS.append({
 		'cmd': cmd,
 		'received': packet['received'],
 		'completed': False,
-		'started': False,
 		'status': STATUS_QUEUED,
-		'captures': captures,
-		'captured': {}
+		'captures': CMD_CAPTURES[cmd] if cmd in CMD_CAPTURES else False,
+		'captured': {},
+		'response': []
 	})
-		
 
-# handle response from the server
-def handleOutput(packet):
-
+def handleTxtReceived(packet):
 	# get line text
 	sText = packet['txt']
 	
-	# get active command (if any)
-	if len(CMDS) > 0:
-		cmd = CMDS[0]
+	active_command = CMDS[0] if CMDS else False
+	
+	# get active command capture
+	if active_command:
 		
-		# your turn, bro!!!
-		if cmd['status'] == STATUS_QUEUED:
-			print('NEW COMMAND:', cmd['cmd'])
-			cmd['status'] == STATUS_ACTIVE
-		
-		captures = cmd['captures']
-		
-		# no more captures means command received its expected response
-		if len(captures) == 0:
-			print('== COMPLETED CAPTURE:', CMDS[0]['captured'])
-			cmd['status'] = STATUS_COMPLETE
-			cmd['completed'] = packet['received']
-			# move completed command to history...
+		# did the command fail?
+		result = re.match(r'(^What\?$|^Try something else.$|^That doesn\'t work.$)', sText)
+		if result:
+			colorNote('COMMAND FAILED: ' + CMDS[0]['cmd'])
+			active_command['status'] = STATUS_FAILED
+			active_command['completed'] = packet['received']
+			HISTORY.append(active_command)
 			CMDS.pop(0)
-			HISTORY.append(cmd)
+			return False
 		
-		# one of more command captures left
-		if len(captures) > 0:
-			print(sText)
-			captured = getCaptured(captures[0], sText)
-			if captured:
-				CMDS[0]['captured'].update(captured)
-				CMDS[0]['captures'].pop(0)
+		# if the command already started...
+		active_command['response'].append(sText)
+		
+		stop_capture = active_command['captures'][-1] if active_command['captures'] else False
+		
+		# is this the last capture?
+		if stop_capture and re.match(stop_capture, sText):
+			colorNote('ENDING! FULL RESPONSE:', 12, 1)
+
+			active_command['status'] = STATUS_SUCCESS
+			active_command['completed'] = packet['received']
+			
+			# get captures:
+			captured = getCaptured(active_command['captures'], active_command['response'])
+			print('CAPTURED!!!!!', captured)
+			
+			HISTORY.append(active_command)
+			CMDS.pop(0)
 
 
-def getCaptured(regex, txt):
-	result = re.search(regex, txt)
-	if result:
-		captures = result.groupdict()
-		return {k:v for k,v in captures.items() if v is not None}
-	else:
-		return False
+def getCaptured(captures, lines):
+	
+	print('getCaptured:')
+	[print(line) for line in lines]
+	
+	all_captured = {}
+	
+	for line in lines:
+		for regex in captures:
+			result = re.search(regex, line)
+			if result:
+				groups = result.groupdict()
+				captured = {k:v for k,v in groups.items() if v is not None}
+				all_captured.update(captured)
+				if captures:
+					captures.pop(0)
+	
+	return all_captured
 
 
 def START():
+	# basic stats
+	print('PLAYER:')
+	print('SESSION START:')
+	print('\n\n\n')
+	
 	# runs forever
 	while True:
-		for line in tail('-f', '/home/zaya/Apps/MUSHclient/x/sync.io', _iter=True):
+		for line in tail('-f', '/home/zaya/Apps/MUSHclient/x/sync.in', _iter=True):
 
 			data = json.loads(line)
 
 			if 'cmd' in data:
-				handleInput(data)
+				handleCommandSent(data)
 				
 			if 'txt' in data:
-				handleOutput(data)
+				handleTxtReceived(data)
 
-print('FOREVER FILE!!!!!')
 START()

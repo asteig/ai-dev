@@ -10,12 +10,7 @@ STATUS_SUCCESS = 'success'
 STATUS_FAILED = 'failed'
 STATUS_COMPLETE = 'complete'
 
-print('STATUS_QUEUED', STATUS_QUEUED)
-print('STATUS_ACTIVE', STATUS_ACTIVE)
-print('STATUS_SUCCESS', STATUS_SUCCESS)
-print('STATUS_FAILED', STATUS_FAILED)
-print('STATUS_COMPLETE', STATUS_COMPLETE)
-
+REGEX_FAILED = r'(That doesn\'t work\.$|Try something else\.$|What\?$)'
 
 # utils
 def colorNote(txt, color=False, bg=False, bold=False):
@@ -42,6 +37,10 @@ CMD_CAPTURES = {
 	]
 }
 
+
+
+
+
 # aliases for directionals
 CMD_CAPTURES['n'] = CMD_CAPTURES['l']
 CMD_CAPTURES['nw'] = CMD_CAPTURES['l']
@@ -54,6 +53,9 @@ CMD_CAPTURES['se'] = CMD_CAPTURES['l']
 CMD_CAPTURES['e'] = CMD_CAPTURES['l']
 CMD_CAPTURES['w'] = CMD_CAPTURES['l']
 
+CMD_CAPTURES['up'] = CMD_CAPTURES['l']
+CMD_CAPTURES['down'] = CMD_CAPTURES['l']
+
 # queue of commands waiting to run...
 CMDS = []
 HISTORY = []
@@ -62,55 +64,60 @@ HISTORY = []
 # manage initial queueing of commands...
 def handleCommandSent(packet):
 
-	new_cmd = {
-		'cmd_txt': packet['cmd_txt'],
-		'received': packet['received'],
-		'completed': False
-	}
+	cmd_txt = packet['cmd_txt']
 	
-	if new_cmd['cmd_txt'] in CMD_CAPTURES:
-		queueCommand(new_cmd)
-		
-# add a command to global CMDS queue
-def queueCommand(cmd):
-	print('queueCommand', cmd['cmd_txt'])
-	cmd['status'] = STATUS_QUEUED
-	cmd['captures'] = CMD_CAPTURES[cmd['cmd_txt']]
-	cmd['captured'] = {}
-	cmd['response'] = []
-	CMDS.append(cmd)
+	if cmd_txt in CMD_CAPTURES:
+		new_cmd = {
+			'cmd_txt': cmd_txt,
+			'received': packet['received'],
+			'status': STATUS_QUEUED,
+			'captures': CMD_CAPTURES[cmd_txt],
+			'response': [],
+			'captured': {},
+			'completed': False
+		}
+		print('queuing:', new_cmd['cmd_txt'])
+		CMDS.append(new_cmd)
 
 def handleTxtReceived(packet):
 
 	# get line text
 	sText = packet['txt']
 	
-	if CMDS:
+	# return False if there's no commands in the queue to process...
+	if not CMDS:
+		return False
 
-		start_capture = CMDS[0]['captures'][0] if CMDS[0]['captures'] else False
-
-		# is this the start? (assume it is not also the end)
-		if start_capture and re.match(start_capture, sText):
-			CMDS[0]['status'] = STATUS_ACTIVE
+	next_cmd = CMDS[0]
+	
+	# command doesn't work...
+	if re.search(REGEX_FAILED, sText):
+		next_cmd['status'] = STATUS_FAILED
+		next_cmd['completed'] = packet['received']
+		HISTORY.append(next_cmd)
+		CMDS.pop(0)
+		return False
+	
+	start_capture = next_cmd['captures'][0]
+	stop_capture = next_cmd['captures'][-1]
+	
+	if re.search(start_capture, sText):
+		colorNote('START CAPTURING!!!!!')
+		next_cmd['status'] = STATUS_ACTIVE
+	
+	if next_cmd['status'] == STATUS_ACTIVE:
+		# add this line to the response
+		next_cmd['response'].append(sText)
 		
-		# is this the end?
-		if CMDS[0]['status'] == STATUS_ACTIVE:
-			CMDS[0]['response'].append(sText)
-			
-			stop_capture = CMDS[0]['captures'][-1]
-			
-			if stop_capture and re.match(stop_capture, sText):
-				CMDS[0]['captured'] = getCaptured(CMDS[0]['captures'], CMDS[0]['response'])
-				CMDS[0]['status'] = STATUS_SUCCESS
-				CMDS[0]['completed'] = packet['received']
-				HISTORY.append(CMDS[0])
-				
-				colorNote('CAPTURED!')
-				for k in CMDS[0]['captured']:
-					print(k.upper()+':', CMDS[0]['captured'][k])
-				
-				CMDS.pop(0)
-
+	if re.search(stop_capture, sText):
+		colorNote('********* CAPTURED DATA:')
+		captured = getCaptured(next_cmd['captures'], next_cmd['response'])
+		print(captured)
+		print('')
+		print('')
+		print('')
+		CMDS.pop(0)
+	
 
 def getCaptured(captures, lines):
 	

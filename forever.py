@@ -5,6 +5,7 @@ import json
 # my includes
 from utils import *
 from captures import *
+from agent import Agent 
 
 # queue of commands waiting to run...
 CMDS = []
@@ -12,12 +13,12 @@ HISTORY = []
 
 # handle input from the player
 def handleCommandSent(packet):
-
 	cmd_txt = packet['cmd_txt']
 	
+	# add recognized commands to the queue
 	if cmd_txt in CMD_CAPTURES:
 		new_cmd = {
-			'cmd_txt': cmd_txt,
+			'action': cmd_txt,
 			'received': packet['received'],
 			'status': STATUS_QUEUED,
 			'captures': CMD_CAPTURES[cmd_txt],
@@ -25,7 +26,6 @@ def handleCommandSent(packet):
 			'captured': {},
 			'completed': False
 		}
-
 		CMDS.append(new_cmd)
 
 def handleTxtReceived(packet):
@@ -33,11 +33,12 @@ def handleTxtReceived(packet):
 	# get line text
 	sText = packet['txt']
 	
-	# return False if there's no commands in the queue to process...
+	# return False if there's no commands in the queue
 	if not CMDS:
 		return False
 
 	next_cmd = CMDS[0]
+	# print('HERE', next_cmd)
 	
 	# command doesn't work...
 	if re.search(REGEX_FAILED, sText):
@@ -49,36 +50,42 @@ def handleTxtReceived(packet):
 	
 	start_capture = next_cmd['captures'][0]
 	stop_capture = next_cmd['captures'][-1]
-	
+
+	# start capture
 	if re.search(start_capture, sText):
 		next_cmd['status'] = STATUS_ACTIVE
 	
 	if next_cmd['status'] == STATUS_ACTIVE:
 		# add this line to the response
 		next_cmd['response'].append(sText)
-		
+	
+	# stop capture
 	if re.search(stop_capture, sText):
-		colorNote('********* CAPTURED DATA:')
+		print('found stop_capture', stop_capture)
 		captured = getCaptured(next_cmd['captures'], next_cmd['response'])
-		print(captured)
-		print('')
+		captured['action'] = next_cmd['action']
 		CMDS.pop(0)
 		
-		# ultimately need to update the agent some how... 
-		onCaptured(captured)
-
+		# update the agent
+		player.update(captured)
 
 if __name__ == "__main__":
+	
+	# init a player agent
+	player = Agent('Zaya')
+	
 	# basic stats
-	print('PLAYER:')
+	print('PLAYER:', player.name)
 	print('SESSION START:')
 	print('\n\n\n')
 	
 	# runs forever
 	while True:
+
 		for packet in tail('-f', '/home/zaya/Apps/MUSHclient/x/sync.in', _iter=True):
 
 			data = json.loads(packet)
+			
 			if 'cmd_txt' in data:
 				handleCommandSent(data)
 				

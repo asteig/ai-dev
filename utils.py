@@ -12,3 +12,29 @@ def splitList(txt):
 	txt = txt.replace(' and ', ', ')
 	items = txt.split(', ')
 	return items
+	
+direction_alias = {
+	'north': 'n',
+	'south': 's',
+	'east': 'e',
+	'west': 'w',
+	'northeast': 'ne',
+	'northwest': 'nw',
+	'southeast': 'se',
+	'southwest': 'sw',
+}
+
+alias_direction = {v: k for k, v in direction_alias.items()}
+
+action_reverse = {
+	'n': 's',
+	's': 'n',
+	'e': 'w',
+	'w': 'e',
+	'ne': 'sw',
+	'nw': 'se',
+	'se': 'nw',
+	'sw': 'ne',
+	'up': 'down',
+	'down': 'up'
+}

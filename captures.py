@@ -20,7 +20,7 @@ CMD_CAPTURES = {
 		r'{"identifier":"(?P<identifier>.+)","name":"(?P<name>.+)","visibility":(?P<visibility>\d+),"kind":"(?P<kind>.+)"}$',
 		r'^\[(?P<shortname>.+)\]$',
 		#r'^.{1,10}$',
-		r'^There are .+ obvious exit(s|)\: (?P<exits>.+)\.$',
+		r'^There (is|are) .+ obvious exit(s|)\: (?P<exits>.+)\.$',
 	]
 }
 
@@ -61,6 +61,3 @@ def getCaptured(captures, lines):
 				all_captured.update(captured)
 	
 	return all_captured
-	
-def onCaptured(captured):
-	print('i captured stuff... now what?')

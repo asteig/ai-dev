@@ -49,7 +49,7 @@ CMD_CAPTURES['out'] = CMD_CAPTURES['l']
 
 # TODO: make multi-line capture (one query)
 def getCaptured(captures, lines):
-	
+	print('here', captures, lines)
 	all_captured = {}
 	
 	for line in lines:

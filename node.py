@@ -2,20 +2,19 @@ from utils import *
 
 class Node:
 
-	def __init__(self, data):
-		global VALID_CMDS
+	def __init__(self, state):
 
-		print('make a node...')
-
-		self.id = data['identifier']
-		#self.parent_id = 
-		self.action = data['action']
+		self.id = state['identifier']
+		self.parent_id = state['parent_id']
+		self.action = state['action']
 		#self.path_cost ... TODO
 		self.edges = {}
 		
-		exits = self._splitExits(data['exits'])
-		print('EXITS:', exits)
-		
+		# init all edges as unexplored
+		available_actions = self._splitExits(state['exits'])
+		for a in available_actions:
+			self.edges[a] = False
+				
 		"""
 		# not sure what we've seen; queue all exits for expansion
 		for exit in exits:

@@ -9,15 +9,56 @@ from agent import Agent
 
 
 # queue of commands waiting to run...
-CMDS = []
-HISTORY = []
+CMD_QUEUE = []
+CMD_HISTORY = []
 
-# all commands with captures are valid
-VALID_CMDS = list(CMD_CAPTURES.keys())
+### TODO: decide where to actually put this...
+# represent each goal as its desired end state.
 
-# goals
-GOAL_EXPAND = 'expand'
+# GOAL CHECKS
+# search graph for unexpanded nodes
+def is_expanded(graph):
+	for node in self.GRAPH:
+		for edge in node.edges:
+			if not edge:
+				return False
+	return True
 
+KNOWLEDGE_BASE = {
+	'goal_check': {
+		'is_expanded': is_expanded
+	}
+}
+
+
+#### MAGIC COMMANDS
+# just for development...
+def _mapStart(graph):
+	print('_mapStart')
+	
+def _mapShow(graph):
+	print('_mapShow')
+
+	# make [y][x] grid with a width of 13
+	display_grid = []
+	for y in range(0, 13):
+		row = ['0'] * 13
+		display_grid.append(row)
+	
+	# hardcoded start (death's domain entrance)
+	display_grid[0][7] = '#'
+	for row in display_grid:
+		print(''.join(row))
+	
+
+def _mapStop(graph):
+	print('_mapStop')
+
+MAGIC_PHRASES = {
+	'You exclaim: GO!!': _mapStart,
+	'You exclaim: SHOW!!': _mapShow,
+	'You exclaim: STOP!!': _mapStop
+}
 
 class Environment: 
 
@@ -26,8 +67,9 @@ class Environment:
 		
 	# handle input from the player
 	def handleCommandSent(self, packet):
-		cmd_txt = packet['cmd_txt']
 		
+		cmd_txt = packet['cmd_txt']
+	
 		# add recognized commands to the queue
 		if cmd_txt in CMD_CAPTURES:
 			new_cmd = {
@@ -39,26 +81,33 @@ class Environment:
 				'captured': {},
 				'completed': False
 			}
-			CMDS.append(new_cmd)
+			CMD_QUEUE.append(new_cmd)
 
 	def handleTxtReceived(self, packet):
 
 		# get line text
 		sText = packet['txt']
 		
+		### dev
+		# is this a magic command?
+		if sText in MAGIC_PHRASES:
+			magic_fn = MAGIC_PHRASES[sText]
+			colorNote('MAGIC!!!!!! ')
+			magic_fn(player.EXPLORED)
+		
 		# return False if there's no commands in the queue
-		if not CMDS:
+		if not CMD_QUEUE:
 			return False
 
-		next_cmd = CMDS[0]
+		next_cmd = CMD_QUEUE[0]
 		# print('HERE', next_cmd)
 		
 		# command doesn't work...
 		if re.search(REGEX_FAILED, sText):
 			next_cmd['status'] = STATUS_FAILED
 			next_cmd['completed'] = packet['received']
-			HISTORY.append(next_cmd)
-			CMDS.pop(0)
+			CMD_HISTORY.append(next_cmd)
+			CMD_QUEUE.pop(0)
 			return False
 		
 		start_capture = next_cmd['captures'][0]
@@ -76,10 +125,13 @@ class Environment:
 		if re.search(stop_capture, sText):
 			captured = getCaptured(next_cmd['captures'], next_cmd['response'])
 			captured['action'] = next_cmd['action']
-			CMDS.pop(0)
+			CMD_QUEUE.pop(0)
 			
 			# update the agent
 			next_action = player.update(captured)
+	
+	
+## JUST FOCUS ON MAKING A MAP!!!!
 	
 	def start(self):
 		# TODO: basic stats
@@ -103,7 +155,10 @@ class Environment:
 if __name__ == "__main__":
 	
 	# init a player agent
-	player = Agent({'name': 'Zaya', 'goal': GOAL_EXPAND})
+	player = Agent({
+		'name': 'Zaya', 
+		'goal': is_expanded
+	})
 	
 	# place agent in environment
 	game = Environment({'agent':player})

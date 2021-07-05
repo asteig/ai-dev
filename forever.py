@@ -12,10 +12,10 @@ from agent import Agent
 CMD_QUEUE = []
 CMD_HISTORY = []
 
-### TODO: decide where to actually put this...
+### GOAL CHECKS
+# TODO: decide where to actually put this...
 # represent each goal as its desired end state.
 
-# GOAL CHECKS
 # search graph for unexpanded nodes
 def is_expanded(graph):
 	for node in self.GRAPH:
@@ -23,41 +23,68 @@ def is_expanded(graph):
 			if not edge:
 				return False
 	return True
+### END GOAL CHECKS
 
-KNOWLEDGE_BASE = {
-	'goal_check': {
-		'is_expanded': is_expanded
-	}
-}
-
-
-#### MAGIC COMMANDS
+### MAGIC COMMANDS
+MAP_START = False
+MAP_HISTORY = []
 # just for development...
 def _mapStart(graph):
 	print('_mapStart')
+	MAP_START = True
+	return graph
 	
 def _mapShow(graph):
 	print('_mapShow')
-
 	# make [y][x] grid with a width of 13
 	display_grid = []
 	for y in range(0, 13):
-		row = ['0'] * 13
+		row = [' '] * 13
 		display_grid.append(row)
-	
-	# hardcoded start (death's domain entrance)
-	display_grid[0][7] = '#'
+
+	for node_id in graph:
+		node = graph[node_id]
+		print(node_id, node.x, node.y)
+		display_grid[node.y][node.x] = '#'
+		
 	for row in display_grid:
-		print(''.join(row))
+			print(''.join(row))
 	
+	print('fuck')
 
 def _mapStop(graph):
 	print('_mapStop')
+	MAP_START = False
+	return graph
+	
+def _mapReset(graph):
+	print('_mapReset')
+	return []
+	
+def _mapPrint(graph):
+	flat_graph = []
+	for node_id in graph:
+		node = graph[node_id]
+		flat_graph.append({
+			'id': node.id,
+			'parent_id': node.parent_id,
+			'action': node.action,
+			'path_cost': node.path_cost,
+			'edges': node.edges
+		})
+	print('---graph data structure:')
+	print(flat_graph)
+	print('---')
+	return graph
+### END MAGIC COMMANDS
 
+# TODO: make dynamic...
 MAGIC_PHRASES = {
-	'You exclaim: GO!!': _mapStart,
+	'You exclaim: START!!': _mapStart,
 	'You exclaim: SHOW!!': _mapShow,
-	'You exclaim: STOP!!': _mapStop
+	'You exclaim: STOP!!': _mapStop,
+	'You exclaim: RESET!!': _mapReset,
+	'You exclaim: PRINT!!': _mapPrint
 }
 
 class Environment: 
@@ -69,7 +96,7 @@ class Environment:
 	def handleCommandSent(self, packet):
 		
 		cmd_txt = packet['cmd_txt']
-	
+		print('COMMAND TEXT:', cmd_txt)
 		# add recognized commands to the queue
 		if cmd_txt in CMD_CAPTURES:
 			new_cmd = {
@@ -82,6 +109,9 @@ class Environment:
 				'completed': False
 			}
 			CMD_QUEUE.append(new_cmd)
+			
+			if MAP_START:
+				MAP_HISTORY.append(cmd_txt)
 
 	def handleTxtReceived(self, packet):
 
@@ -93,14 +123,15 @@ class Environment:
 		if sText in MAGIC_PHRASES:
 			magic_fn = MAGIC_PHRASES[sText]
 			colorNote('MAGIC!!!!!! ')
-			magic_fn(player.EXPLORED)
+			player.graph = magic_fn(player.EXPLORED)
+			return True
+		### /dev
 		
 		# return False if there's no commands in the queue
 		if not CMD_QUEUE:
 			return False
 
 		next_cmd = CMD_QUEUE[0]
-		# print('HERE', next_cmd)
 		
 		# command doesn't work...
 		if re.search(REGEX_FAILED, sText):
@@ -128,6 +159,7 @@ class Environment:
 			CMD_QUEUE.pop(0)
 			
 			# update the agent
+			print('update the agent...')
 			next_action = player.update(captured)
 	
 	

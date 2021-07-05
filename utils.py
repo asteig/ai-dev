@@ -22,6 +22,8 @@ direction_alias = {
 	'northwest': 'nw',
 	'southeast': 'se',
 	'southwest': 'sw',
+	'up': 'up',
+	'down': 'down'
 }
 
 alias_direction = {v: k for k, v in direction_alias.items()}

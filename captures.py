@@ -36,20 +36,20 @@ CMD_CAPTURES['se'] = CMD_CAPTURES['l']
 CMD_CAPTURES['e'] = CMD_CAPTURES['l']
 CMD_CAPTURES['w'] = CMD_CAPTURES['l']
 
-CMD_CAPTURES['up'] = CMD_CAPTURES['l']
-CMD_CAPTURES['down'] = CMD_CAPTURES['l']
+# CMD_CAPTURES['up'] = CMD_CAPTURES['l']
+# CMD_CAPTURES['down'] = CMD_CAPTURES['l']
 
-CMD_CAPTURES['forward'] = CMD_CAPTURES['l']
-CMD_CAPTURES['backward'] = CMD_CAPTURES['l']
+# CMD_CAPTURES['forward'] = CMD_CAPTURES['l']
+# CMD_CAPTURES['backward'] = CMD_CAPTURES['l']
 
-CMD_CAPTURES['left'] = CMD_CAPTURES['l']
-CMD_CAPTURES['right'] = CMD_CAPTURES['l']
+# CMD_CAPTURES['left'] = CMD_CAPTURES['l']
+# CMD_CAPTURES['right'] = CMD_CAPTURES['l']
 
-CMD_CAPTURES['out'] = CMD_CAPTURES['l']
+# CMD_CAPTURES['out'] = CMD_CAPTURES['l']
 
 # TODO: make multi-line capture (one query)
 def getCaptured(captures, lines):
-	print('here', captures, lines)
+
 	all_captured = {}
 	
 	for line in lines:

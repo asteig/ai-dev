@@ -36,12 +36,11 @@ class Agent:
 	
 	# choose next action from internal state
 	def next(self, node):
-		colorNote('What should I do with you?')
-		print(node)
+		pass
 	
 	# add room to map
 	def expand(self, room):
-		
+		print('expanding...')
 		# get previous state
 		state = self.WORLDSTATE
 		
@@ -49,11 +48,12 @@ class Agent:
 		room_id = room['identifier']
 		
 		# add parent_id
-		room['parent_id'] = state['parent_id']
+		parent_id = state['parent_id']
 
 		# we haven't seen this room before!
 		if room_id not in self.EXPLORED:
 			# make a graph node
+			room['parent'] = self.EXPLORED[parent_id] if parent_id else False
 			node = Node(room)
 		else:
 			# retreive existing node
@@ -69,7 +69,7 @@ class Agent:
 		# add to memory!
 		print('saving to memory!')
 		print('ID:', node.id)
-		print('parent_id:', node.parent_id)
+		print('COORDS:', node.x, node.y)
 		
 		# update parent's edge
 		if node.parent_id:

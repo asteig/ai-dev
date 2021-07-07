@@ -36,21 +36,26 @@ def _mapStart(graph):
 	
 def _mapShow(graph):
 	print('_mapShow')
+	
+	if not graph:
+		return False
+	
+	offset_x = abs(min([graph[n_id].x for n_id in graph])) + 5
+	offset_y = abs(min([graph[n_id].y for n_id in graph])) + 5
+	
 	# make [y][x] grid with a width of 13
 	display_grid = []
-	for y in range(0, 13):
-		row = [' '] * 13
+	for y in range(0, (20)):
+		row = [' '] * (20)
 		display_grid.append(row)
 
 	for node_id in graph:
 		node = graph[node_id]
 		print(node_id, node.x, node.y)
-		display_grid[node.y][node.x] = '#'
+		display_grid[node.y+offset_y][node.x+offset_y] = '#'
 		
 	for row in display_grid:
 			print(''.join(row))
-	
-	print('fuck')
 
 def _mapStop(graph):
 	print('_mapStop')
@@ -76,6 +81,11 @@ def _mapPrint(graph):
 	print(flat_graph)
 	print('---')
 	return graph
+	
+def _mapSave(graph):
+	print('Save JSON data:')
+	print(json.dumps(graph))
+	print('--------------')
 ### END MAGIC COMMANDS
 
 # TODO: make dynamic...
@@ -84,7 +94,8 @@ MAGIC_PHRASES = {
 	'You exclaim: SHOW!!': _mapShow,
 	'You exclaim: STOP!!': _mapStop,
 	'You exclaim: RESET!!': _mapReset,
-	'You exclaim: PRINT!!': _mapPrint
+	'You exclaim: PRINT!!': _mapPrint,
+	'You exclaim: SAVE!!': _mapSave
 }
 
 class Environment: 
@@ -96,7 +107,7 @@ class Environment:
 	def handleCommandSent(self, packet):
 		
 		cmd_txt = packet['cmd_txt']
-		print('COMMAND TEXT:', cmd_txt)
+
 		# add recognized commands to the queue
 		if cmd_txt in CMD_CAPTURES:
 			new_cmd = {

@@ -32,7 +32,7 @@ class Node:
 		
 		# start at origin
 		if not parent_node:
-			self.x = 8
+			self.x = 0
 			self.y = 0
 		else:
 			offset_x, offset_y = offset[self.action]

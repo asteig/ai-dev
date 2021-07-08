@@ -80,7 +80,6 @@ class Agent:
 			
 		self.EXPLORED[node.id] = node
 		print('Saved Nodes:', len(self.EXPLORED))
-
 		
 		return self.WORLDSTATE
 		

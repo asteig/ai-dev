@@ -13,7 +13,11 @@ from agent import Agent
 CMD_QUEUE = []
 CMD_HISTORY = []
 
-CMD_FILE = 'data/cmd_queue.json'
+# output directly from the MUD client
+LOG_FILE = '/home/zaya/Apps/MUSHclient/x/sync.in'
+
+# messages from python bot to client
+MSG_FILE = 'data/messages.json'
 
 WORLDSTATE = {}
 
@@ -118,6 +122,11 @@ MAGIC_PHRASES = {
 
 class Environment: 
 
+	CAPTURE_QUEUE = []
+	CAPTURE_RESULT = []
+	
+	WORLDSTATE = {}
+
 	def __init__(self, params):
 		self.player = params['agent']
 		
@@ -134,36 +143,47 @@ class Environment:
 				'captured': {},
 				'completed': False
 			}
-			
-			CMD_QUEUE.append(new_cmd)
+			self.CAPTURE_QUEUE.append(new_cmd)
 
 	def _getCaptured(self, sText):
-		next_cmd = CMD_QUEUE[0]
+		capture_cmd = self.CAPTURE_QUEUE[0]
+		
+		if not capture_cmd:
+			print(':(')
+			return False
 		
 		# command doesn't work...
 		if re.search(REGEX_FAILED, sText):
-			next_cmd['status'] = STATUS_FAILED
-			next_cmd['completed'] = packet['received']
-			CMD_HISTORY.append(next_cmd)
-			CMD_QUEUE.pop(0)
+			# log failed command
+			capture_cmd['status'] = STATUS_FAILED
+			capture_cmd['completed'] = packet['received']
+			self.CAPTURE_RESULT.append(capture_cmd)
+			
+			# remove from queue
+			self.CAPTURE_QUEUE.pop(0)
 			return False
 		
-		start_capture = next_cmd['captures'][0]
-		stop_capture = next_cmd['captures'][-1]
+		start_capture = capture_cmd['captures'][0]
+		stop_capture = capture_cmd['captures'][-1]
 
 		# start capture
 		if re.search(start_capture, sText):
-			next_cmd['status'] = STATUS_ACTIVE
+			capture_cmd['status'] = STATUS_ACTIVE
 		
-		if next_cmd['status'] == STATUS_ACTIVE:
+		if capture_cmd['status'] == STATUS_ACTIVE:
 			# add this line to the response
-			next_cmd['response'].append(sText)
+			capture_cmd['response'].append(sText)
 		
 		# stop capture
 		if re.search(stop_capture, sText):
-			captured = getCaptured(next_cmd['captures'], next_cmd['response'])
-			captured['action'] = next_cmd['action']
-			CMD_QUEUE.pop(0)
+			# log capture
+			captured = getCaptured(capture_cmd['captures'], capture_cmd['response'])
+			capture_cmd['response'] = captured
+			captured['action'] = capture_cmd['action']
+			self.CAPTURE_RESULT.append(capture_cmd)
+			
+			# remove from queue
+			self.CAPTURE_QUEUE.pop(0)
 			return captured
 			
 		return False
@@ -190,13 +210,13 @@ class Environment:
 		# is this a magic command?
 		if sText in MAGIC_PHRASES:
 			magic_fn = MAGIC_PHRASES[sText]
-			colorNote('MAGIC!!!!!! ')
+			colorNote('MAGIC!!!!!!         ')
 			player.graph = magic_fn(player.EXPLORED)
 			return True
 		### /dev
 		
 		# return False if there's no commands in the queue
-		if not CMD_QUEUE:
+		if not self.CAPTURE_QUEUE:
 			return False
 
 		# "look" for a completed capture group
@@ -213,7 +233,7 @@ class Environment:
 				WORLDSTATE.update({'i': update})
 			
 			# update the player
-			self.player.update(update)
+			next_action = self.player.update(update)
 	
 ## JUST FOCUS ON MAKING A MAP!!!!
 	

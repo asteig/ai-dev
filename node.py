@@ -1,9 +1,8 @@
 from utils import *
-print('Node')
+
 class Node:
 
 	def __init__(self, state):
-		print('make a node...')
 		parent_node = state['parent']
 		
 		self.id = state['identifier']
@@ -20,7 +19,8 @@ class Node:
 		# init all edges as unexplored
 		available_actions = self._splitExits(state['exits'])
 		for a in available_actions:
-			self.edges[direction_alias[a]] = False
+			if a in direction_alias:
+				self.edges[direction_alias[a]] = False
 		
 		# get x-y coords
 		offset = {

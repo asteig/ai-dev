@@ -24,6 +24,7 @@ class Node:
 		
 		# get x-y coords
 		offset = {
+			'l': [  0,   0],
 			'n': [  0,  -1],
 			's': [  0,   1],
 			'e': [  1,   0],

@@ -1,6 +1,7 @@
 # python packages
 from sh import tail
 import json
+import time
 
 # my includes
 from utils import *
@@ -8,9 +9,13 @@ from captures import *
 from agent import Agent
 
 
-# queue of commands waiting to run...
+# queue of commands waiting for captures
 CMD_QUEUE = []
 CMD_HISTORY = []
+
+CMD_FILE = 'data/cmd_queue.json'
+
+WORLDSTATE = {}
 
 ### GOAL CHECKS
 # TODO: decide where to actually put this...
@@ -40,6 +45,8 @@ def _mapShow(graph):
 	if not graph:
 		return False
 	
+	# TODO: less sloppy bounding...
+	# make sure the grid is big enough...
 	offset_x = abs(min([graph[n_id].x for n_id in graph])) + 5
 	offset_y = abs(min([graph[n_id].y for n_id in graph])) + 5
 	
@@ -51,7 +58,6 @@ def _mapShow(graph):
 
 	for node_id in graph:
 		node = graph[node_id]
-		print(node_id, node.x, node.y)
 		display_grid[node.y+offset_y][node.x+offset_y] = '#'
 		
 	for row in display_grid:
@@ -66,6 +72,7 @@ def _mapReset(graph):
 	print('_mapReset')
 	return []
 	
+# print data out using aima data representations... 
 def _mapPrint(graph):
 	flat_graph = []
 	for node_id in graph:
@@ -86,8 +93,15 @@ def _mapSave(graph):
 	print('Save JSON data:')
 	print(json.dumps(graph))
 	print('--------------')
-### END MAGIC COMMANDS
 
+####### next
+# recommend next action...
+# (next unexplored action, closest to current position)
+def _mapNext(graph):
+	print('_mapNext')
+	print(WORLDSTATE)
+
+	
 # TODO: make dynamic...
 MAGIC_PHRASES = {
 	'You exclaim: START!!': _mapStart,
@@ -95,53 +109,35 @@ MAGIC_PHRASES = {
 	'You exclaim: STOP!!': _mapStop,
 	'You exclaim: RESET!!': _mapReset,
 	'You exclaim: PRINT!!': _mapPrint,
-	'You exclaim: SAVE!!': _mapSave
+	'You exclaim: SAVE!!': _mapSave,
+	'You exclaim: NEXT!!': _mapNext
 }
+	
+	
+### END MAGIC COMMANDS
 
 class Environment: 
 
 	def __init__(self, params):
 		self.player = params['agent']
 		
-	# handle input from the player
-	def handleCommandSent(self, packet):
+	def _queueCmdCaptures(self, cmd):
 		
-		cmd_txt = packet['cmd_txt']
-
-		# add recognized commands to the queue
-		if cmd_txt in CMD_CAPTURES:
+		# add recognized commands to the capture queue
+		if cmd in CMD_CAPTURES:
 			new_cmd = {
-				'action': cmd_txt,
-				'received': packet['received'],
+				'action': cmd,
+				'received': int(time.time()),
 				'status': STATUS_QUEUED,
-				'captures': CMD_CAPTURES[cmd_txt],
+				'captures': CMD_CAPTURES[cmd],
 				'response': [],
 				'captured': {},
 				'completed': False
 			}
-			CMD_QUEUE.append(new_cmd)
 			
-			if MAP_START:
-				MAP_HISTORY.append(cmd_txt)
+			CMD_QUEUE.append(new_cmd)
 
-	def handleTxtReceived(self, packet):
-
-		# get line text
-		sText = packet['txt']
-		
-		### dev
-		# is this a magic command?
-		if sText in MAGIC_PHRASES:
-			magic_fn = MAGIC_PHRASES[sText]
-			colorNote('MAGIC!!!!!! ')
-			player.graph = magic_fn(player.EXPLORED)
-			return True
-		### /dev
-		
-		# return False if there's no commands in the queue
-		if not CMD_QUEUE:
-			return False
-
+	def _getCaptured(self, sText):
 		next_cmd = CMD_QUEUE[0]
 		
 		# command doesn't work...
@@ -168,11 +164,56 @@ class Environment:
 			captured = getCaptured(next_cmd['captures'], next_cmd['response'])
 			captured['action'] = next_cmd['action']
 			CMD_QUEUE.pop(0)
+			return captured
 			
-			# update the agent
-			print('update the agent...')
-			next_action = player.update(captured)
-	
+		return False
+		
+		
+	# handle input from the player
+	def handleCommandSent(self, packet):
+		
+		cmd_txt = packet['cmd_txt']
+
+		# TODO: handle multiple commands sent at once...
+		# TODO: separate queue command function...
+		cmd_list = cmd_txt.split('\n')
+		
+		for cmd in cmd_list:
+			self._queueCmdCaptures(cmd)
+
+	def handleTxtReceived(self, packet):
+
+		# get line text
+		sText = packet['txt']
+		
+		### dev
+		# is this a magic command?
+		if sText in MAGIC_PHRASES:
+			magic_fn = MAGIC_PHRASES[sText]
+			colorNote('MAGIC!!!!!! ')
+			player.graph = magic_fn(player.EXPLORED)
+			return True
+		### /dev
+		
+		# return False if there's no commands in the queue
+		if not CMD_QUEUE:
+			return False
+
+		# "look" for a completed capture group
+		# TODO: not sure if the environment should be handling this...
+		update = self._getCaptured(sText)
+		
+		if update:
+			# update the worldstate
+			print('update the WORLDSTATE...')
+			if 'exits' in update:
+				WORLDSTATE.update({'room': update})
+			
+			if 'burden' in update:
+				WORLDSTATE.update({'i': update})
+			
+			# update the player
+			self.player.update(update)
 	
 ## JUST FOCUS ON MAKING A MAP!!!!
 	

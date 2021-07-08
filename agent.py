@@ -21,14 +21,14 @@ class Agent:
 		self.goal = params['goal']
 	
 	# update agent's internal state
-	def update(self, state):
+	def update(self, percept):
 		colorNote('********* update agent!')
 		
 		# it's a room!
 		# TODO: this should be called by a goal somehow...
-		if 'exits' in state:
+		if 'exits' in percept:
 			# get a graph node
-			node = self.expand(state)
+			node = self.expand(percept)
 			# remember info
 			self.remember(node)
 			# choose next action

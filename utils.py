@@ -28,7 +28,7 @@ direction_alias = {
 
 alias_direction = {v: k for k, v in direction_alias.items()}
 
-reverse_action = {
+REVERSE_ACTION = {
 	'n': 's',
 	's': 'n',
 	'e': 'w',

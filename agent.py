@@ -8,7 +8,7 @@ class Agent:
 	WORLDSTATE = {
 		'room': {},
 		'inventory': {},
-		'parent_id': False
+		'prev_id': False
 	}
 	
 	# for graph-solving problems
@@ -22,15 +22,13 @@ class Agent:
 	
 	# update agent's internal state
 	def update(self, percept):
-		colorNote('********* update agent!')
-		
 		# it's a room!
 		# TODO: this should be called by a goal somehow...
 		if 'exits' in percept:
 			# get a graph node
 			node = self.expand(percept)
 			# remember info
-			self.remember(node)
+			# self.remember(node)
 			# choose next action
 			return self.next(node)
 	
@@ -39,29 +37,46 @@ class Agent:
 		pass
 	
 	# add room to map
-	def expand(self, room):
+	def expand(self, percept):
 		print('expanding...')
-		# get previous state
-		state = self.WORLDSTATE
+		node_id = percept['identifier']
 		
-		# current room id
-		room_id = room['identifier']
-		
-		# add parent_id
-		parent_id = state['parent_id']
-
-		# we haven't seen this room before!
-		if room_id not in self.EXPLORED:
-			# make a graph node
-			room['parent'] = self.EXPLORED[parent_id] if parent_id else False
-			node = Node(room)
+		# "I member!"
+		if node_id in self.EXPLORED:
+			print('EXISTING NODE!!!')
+			node = self.EXPLORED[node_id]
+			[print(a, ':', node.edges[a]) for a in node.edges]
+			print('')
+			print('')
+			print('')
 		else:
-			# retreive existing node
-			node = self.EXPLORED[room_id]
+		# I need to add this one!
+			print('NEW NODE!!!')
+			parent_id = self.WORLDSTATE['prev_id']
+			print('parent_id:', parent_id)
+			percept['parent'] = self.EXPLORED[parent_id] if parent_id else False
+			node = Node(percept)
+			print('new node:', node)
 		
-		# set parent_id for next node
-		state['parent_id'] = node.id
+		# update edges
+		parent_id = node.parent_id
+		if parent_id:
+			print('updating exits...')
+			# parent to child
+			self.EXPLORED[parent_id].edges[node.action] = node.id
+			print('parent after updating edges:', self.EXPLORED[parent_id])
+			# child to parent
+			node.edges[REVERSE_ACTION[node.action]] = parent_id
 		
+		# what's left to explore?
+		print('all_actions:')
+		[print(a.upper(), ':', node.edges[a]) for a in node.edges]
+		
+		self.EXPLORED[node.id] = node
+		
+		# finally, set prev node to current node
+		self.WORLDSTATE['prev_id'] = node.id
+
 		return node
 
 	# TODO: this is only for graph nodes, what about other data?

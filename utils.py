@@ -37,6 +37,7 @@ REVERSE_ACTION = {
 	'nw': 'se',
 	'se': 'nw',
 	'sw': 'ne',
+	'l': 'l'
 	# 'up': 'down',
 	# 'down': 'up'
 }

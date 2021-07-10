@@ -146,6 +146,7 @@ class Environment:
 			self.CAPTURE_QUEUE.append(new_cmd)
 
 	def _getCaptured(self, sText):
+		
 		capture_cmd = self.CAPTURE_QUEUE[0]
 		
 		if not capture_cmd:
@@ -156,7 +157,7 @@ class Environment:
 		if re.search(REGEX_FAILED, sText):
 			# log failed command
 			capture_cmd['status'] = STATUS_FAILED
-			capture_cmd['completed'] = packet['received']
+			capture_cmd['completed'] = int(time.time())
 			self.CAPTURE_RESULT.append(capture_cmd)
 			
 			# remove from queue
@@ -165,9 +166,10 @@ class Environment:
 		
 		start_capture = capture_cmd['captures'][0]
 		stop_capture = capture_cmd['captures'][-1]
-
+		
 		# start capture
 		if re.search(start_capture, sText):
+			print('START CAPTURE', start_capture)
 			capture_cmd['status'] = STATUS_ACTIVE
 		
 		if capture_cmd['status'] == STATUS_ACTIVE:
@@ -176,6 +178,8 @@ class Environment:
 		
 		# stop capture
 		if re.search(stop_capture, sText):
+			print('STOP CAPTURE')
+			print('full response:', capture_cmd['response'])
 			# log capture
 			captured = getCaptured(capture_cmd['captures'], capture_cmd['response'])
 			capture_cmd['response'] = captured
@@ -204,7 +208,7 @@ class Environment:
 	def handleTxtReceived(self, packet):
 
 		# get line text
-		sText = packet['txt']
+		sText = packet['response_txt']
 		
 		### dev
 		# is this a magic command?
@@ -220,12 +224,11 @@ class Environment:
 			return False
 
 		# "look" for a completed capture group
-		# TODO: not sure if the environment should be handling this...
 		update = self._getCaptured(sText)
 		
 		if update:
 			# update the worldstate
-			print('update the WORLDSTATE...')
+			print('update the WORLDSTATE...', update)
 			if 'exits' in update:
 				WORLDSTATE.update({'room': update})
 			
@@ -253,7 +256,7 @@ class Environment:
 				if 'cmd_txt' in data:
 					self.handleCommandSent(data)
 					
-				if 'txt' in data:
+				if 'response_txt' in data:
 					self.handleTxtReceived(data)
 			
 if __name__ == "__main__":

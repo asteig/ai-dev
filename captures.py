@@ -17,6 +17,7 @@ CMD_CAPTURES = {
 		r'^Your purse contains (?P<purse>.+)\.$'
 	],
 	'l': [
+		# TODO: fix GMCP data...
 		r'{"identifier":"(?P<identifier>.+)","name":"(?P<name>.+)","visibility":(?P<visibility>\d+),"kind":"(?P<kind>.+)"}$',
 		r'^\[(?P<shortname>.+)\]$',
 		#r'^.{1,10}$',

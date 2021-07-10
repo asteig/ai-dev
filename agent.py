@@ -51,22 +51,27 @@ class Agent:
 			print('')
 		else:
 		# I need to add this one!
-			print('NEW NODE!!!')
+			colorNote('NEW NODE!!!')
 			parent_id = self.WORLDSTATE['prev_id']
-			print('parent_id:', parent_id)
 			percept['parent'] = self.EXPLORED[parent_id] if parent_id else False
 			node = Node(percept)
-			print('new node:', node)
 		
 		# update edges
 		parent_id = node.parent_id
 		if parent_id:
-			print('updating exits...')
 			# parent to child
 			self.EXPLORED[parent_id].edges[node.action] = node.id
-			print('parent after updating edges:', self.EXPLORED[parent_id])
 			# child to parent
 			node.edges[REVERSE_ACTION[node.action]] = parent_id
+		
+		# what about if a "2nd" parent?
+		prev_id = self.WORLDSTATE['prev_id']
+		if prev_id != parent_id:
+			prev_node = self.EXPLORED[prev_id]
+			prev_node.edges[percept['action']] = node.id
+			node.edges[REVERSE_ACTION[percept['action']]] = prev_id
+			# TODO: double check I need this...
+			self.EXPLORED[prev_id] = prev_node
 		
 		# what's left to explore?
 		print('all_actions:')

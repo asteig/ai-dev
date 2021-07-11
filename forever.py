@@ -2,6 +2,7 @@
 from sh import tail
 import json
 import time
+import re
 
 # my includes
 from utils import *
@@ -18,8 +19,6 @@ LOG_FILE = '/home/zaya/Apps/MUSHclient/x/sync.in'
 
 # messages from python bot to client
 MSG_FILE = 'data/messages.json'
-
-WORLDSTATE = {}
 
 ### GOAL CHECKS
 # TODO: decide where to actually put this...
@@ -62,10 +61,10 @@ def _mapShow(graph):
 
 	for node_id in graph:
 		node = graph[node_id]
-		display_grid[node.y+offset_y][node.x+offset_y] = '#'
+		display_grid[node.y+offset_y][node.x+offset_y] = '#' if node.expanded else 'X'
 		
 	for row in display_grid:
-			print(''.join(row))
+		print(''.join(row))
 
 def _mapStop(graph):
 	print('_mapStop')
@@ -103,7 +102,6 @@ def _mapSave(graph):
 # (next unexplored action, closest to current position)
 def _mapNext(graph):
 	print('_mapNext')
-	print(WORLDSTATE)
 
 	
 # TODO: make dynamic...
@@ -117,7 +115,6 @@ MAGIC_PHRASES = {
 	'You exclaim: NEXT!!': _mapNext
 }
 	
-	
 ### END MAGIC COMMANDS
 
 class Environment: 
@@ -125,20 +122,23 @@ class Environment:
 	CAPTURE_QUEUE = []
 	CAPTURE_RESULT = []
 	
-	WORLDSTATE = {}
+	WORLDSTATE = {
+		'prev_id': False
+	}
 
 	def __init__(self, params):
 		self.player = params['agent']
-		
-	def _queueCmdCaptures(self, cmd):
+	
+	# add command to end of CAPTURE_QUEUE
+	def _queueCmdCaptures(self, cmd_txt):
 		
 		# add recognized commands to the capture queue
-		if cmd in CMD_CAPTURES:
+		if cmd_txt in CMD_CAPTURES:
 			new_cmd = {
-				'action': cmd,
+				'action': cmd_txt,
 				'received': int(time.time()),
 				'status': STATUS_QUEUED,
-				'captures': CMD_CAPTURES[cmd],
+				'captures': CMD_CAPTURES[cmd_txt],
 				'response': [],
 				'captured': {},
 				'completed': False
@@ -169,7 +169,6 @@ class Environment:
 		
 		# start capture
 		if re.search(start_capture, sText):
-			print('START CAPTURE', start_capture)
 			capture_cmd['status'] = STATUS_ACTIVE
 		
 		if capture_cmd['status'] == STATUS_ACTIVE:
@@ -178,8 +177,6 @@ class Environment:
 		
 		# stop capture
 		if re.search(stop_capture, sText):
-			print('STOP CAPTURE')
-			print('full response:', capture_cmd['response'])
 			# log capture
 			captured = getCaptured(capture_cmd['captures'], capture_cmd['response'])
 			capture_cmd['response'] = captured
@@ -191,7 +188,6 @@ class Environment:
 			return captured
 			
 		return False
-		
 		
 	# handle input from the player
 	def handleCommandSent(self, packet):
@@ -226,14 +222,15 @@ class Environment:
 		# "look" for a completed capture group
 		update = self._getCaptured(sText)
 		
+		# TODO: does the environment need to keep the WORLDSTATE?
 		if update:
 			# update the worldstate
-			print('update the WORLDSTATE...', update)
 			if 'exits' in update:
-				WORLDSTATE.update({'room': update})
+				update['prev_id'] = self.WORLDSTATE['prev_id']
+				self.WORLDSTATE.update({'room': update})
 			
 			if 'burden' in update:
-				WORLDSTATE.update({'i': update})
+				self.WORLDSTATE.update({'i': update})
 			
 			# update the player
 			next_action = self.player.update(update)

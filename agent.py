@@ -1,6 +1,10 @@
 # my includes
 from node import *
 from utils import *
+import time
+import json
+
+MSG_FILE = 'data/messages.json'
 
 class Agent:
 	
@@ -14,11 +18,22 @@ class Agent:
 	# for graph-solving problems
 	# collection of nodes
 	EXPLORED = {}
+
+	# current "view" of the agent
+	percept = False
 	
 	def __init__(self, params):
 		# TODO: auto-expand params
 		self.name = params['name']
 		self.goal = params['goal']
+		
+		self.message('my first test message! :)')
+	
+	# get all actions
+	# without state, returns ALL actions in the environment
+	# with a state supplied, it returns ALL actions available at that moment.
+	def getAllActions(self, state=False):
+		pass
 	
 	# update agent's internal state
 	def update(self, percept):
@@ -30,28 +45,78 @@ class Agent:
 			# remember info
 			# self.remember(node)
 			# choose next action
-			return self.next(node)
+			next_action = self.next(node)
+			print('GO:', next_action)
+			#return self.next(next_action)
 	
 	# choose next action from internal state
 	def next(self, node):
-		pass
-	
-	# add room to map
-	def expand(self, percept):
-		print('expanding...')
-		node_id = percept['identifier']
+		# are there any unexplored nodes at all?
+		if self.checkGoal():
+			print('You got it already, champ! Good job!')
+			return False
 		
+		# return first unexplored edge of current node
+		if not node.expanded():
+			for a in node.edges:
+				if not node.edges[a]:
+					return a
+			
+		# what about any unexplored nodes up the tree?
+		check_node = node
+		while check_node:
+			if not check_node.expanded():
+				for a in check_node.edges:
+					if not check_node.edges[a]:
+						# return the reverse of the most recent action
+						return REVERSE_ACTION[node.action]
+			# move on to the next node...
+			parent_id = check_node.parent_id
+			check_node = self.EXPLORED[parent_id] if parent_id else False
+				
+		# uh oh! No unexplored nodes up the tree... what next???
+		print('Didn\'t find an unexplored node in the tree. :(')
+		
+		unexplored = self.getUnexpanded()
+		print('unexplored nodes:', unexplored)
+	
+	# leave a message for the environment...
+	def message(self, msg_txt):
+		msg = {
+			'msg_txt': msg_txt,
+			'sent': int(time.time()),
+		}
+		
+		# write to log
+		f = open(MSG_FILE, 'a')
+		f.write(json.dumps(msg))
+		f.close()
+		
+		return True
+
+	def getUnexpanded(self, graph=False):
+		graph = graph if graph else self.EXPLORED
+		unexplored = [graph[n_id] for n_id in graph if not graph[n_id].expanded()]
+		return unexplored
+	
+	# add / update a node in EXPLORED, as well as the associated neighbors.
+	def expand(self, percept):
+		print('percept:', percept)
+		# TODO: probably move to update...
+		# goal check
+		# are all nodes expanded?
+		if self.checkGoal():
+			return True
+		
+		# look for node in graph
+		node_id = percept['identifier']
 		# "I member!"
 		if node_id in self.EXPLORED:
-			print('EXISTING NODE!!!')
+			colorNote('EXISTING NODE!!! '+node_id)
 			node = self.EXPLORED[node_id]
-			[print(a, ':', node.edges[a]) for a in node.edges]
-			print('')
-			print('')
-			print('')
 		else:
 		# I need to add this one!
-			colorNote('NEW NODE!!!')
+			colorNote('NEW NODE!!! '+node_id)
 			parent_id = self.WORLDSTATE['prev_id']
 			percept['parent'] = self.EXPLORED[parent_id] if parent_id else False
 			node = Node(percept)
@@ -64,7 +129,7 @@ class Agent:
 			# child to parent
 			node.edges[REVERSE_ACTION[node.action]] = parent_id
 		
-		# what about if a "2nd" parent?
+		# if an existing node already has a parent_id...
 		prev_id = self.WORLDSTATE['prev_id']
 		if prev_id != parent_id:
 			prev_node = self.EXPLORED[prev_id]
@@ -73,9 +138,11 @@ class Agent:
 			# TODO: double check I need this...
 			self.EXPLORED[prev_id] = prev_node
 		
-		# what's left to explore?
-		print('all_actions:')
-		[print(a.upper(), ':', node.edges[a]) for a in node.edges]
+		print('EXPANDED:', node.expanded())
+		[print(a, ':', node.edges[a]) for a in node.edges]
+		print('')
+		print('')
+		print('')
 		
 		self.EXPLORED[node.id] = node
 		
@@ -83,30 +150,12 @@ class Agent:
 		self.WORLDSTATE['prev_id'] = node.id
 
 		return node
-
-	# TODO: this is only for graph nodes, what about other data?
-	def remember(self, node):
-		# add to memory!
-		print('saving to memory!')
-		print('ID:', node.id)
-		print('COORDS:', node.x, node.y)
-		
-		# update parent's edge
-		if node.parent_id:
-			parent_node = self.EXPLORED[node.parent_id]
-			parent_node.edges[node.action] = node.id
-			# path back to parent too
-			node.edges[reverse_action[node.action]] = parent_node.id
-			
-		self.EXPLORED[node.id] = node
-		print('Saved Nodes:', len(self.EXPLORED))
-		
-		return self.WORLDSTATE
 		
 	# check every node for hanging edges
-	def checkGoal(self, state):
-		for node in self.EXPLORED:
-			for edge in node.edges:
-				if not edge:
-					return False
-		return True
+	def checkGoal(self):
+		if self.EXPLORED:
+			expanded = [self.EXPLORED[n_id].expanded() for n_id in self.EXPLORED]
+			if all(expanded):
+				colorNote('~*~*~*~*~*~*~*~*~*~*~*~*\n!!!!!!!EXPANDED!!!!!!!!!\n~*~*~*~*~*~*~*~*~*~*~*~*')
+				return True
+		return False

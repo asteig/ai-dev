@@ -8,12 +8,13 @@ def colorNote(txt, color=False, bg=False, bold=False):
 	bg_code = '\033[48;5;%dm' % bg if bg else ''
 	print(color_code + bg_code + txt + '\033[0m')
 	
-def splitList(txt):
+def splitTxtList(txt):
 	txt = txt.replace(' and ', ', ')
 	items = txt.split(', ')
 	return items
 	
 direction_alias = {
+	'look': 'l',
 	'north': 'n',
 	'south': 's',
 	'east': 'e',

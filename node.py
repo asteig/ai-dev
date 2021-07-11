@@ -17,10 +17,14 @@ class Node:
 			self.parent_id = False
 		
 		# init all edges as unexplored
-		available_actions = self._splitExits(state['exits'])
+		available_actions = splitTxtList(state['exits'])
 		for a in available_actions:
 			if a in direction_alias:
 				self.edges[direction_alias[a]] = False
+		
+		# edge back to parent...
+		if self.parent_id:
+			self.edges[REVERSE_ACTION[self.action]] = self.parent_id
 		
 		# get x-y coords
 		offset = {
@@ -44,5 +48,15 @@ class Node:
 		txt = exits.replace(' and ', ', ')
 		exits = txt.split(', ')
 		return exits
+		
+	def expanded(self):
+		# look for any False (unexplored) actions
+		return not [a for a in self.edges if not self.edges[a]]
+		
+	def next(self):
+		for action in self.edges:
+			if not action:
+				return action
+		return False
 		
 	

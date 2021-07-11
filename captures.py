@@ -21,6 +21,7 @@ CMD_CAPTURES = {
 		r'{"identifier":"(?P<identifier>.+)","name":"(?P<name>.+)","visibility":(?P<visibility>\d+),"kind":"(?P<kind>.+)"}$',
 		r'^\[(?P<shortname>.+)\]$',
 		#r'^.{1,10}$',
+		# TODO: split exits in regex...
 		r'^There (is|are) .+ obvious exit(s|)\: (?P<exits>.+)\.$',
 	]
 }

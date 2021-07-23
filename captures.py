@@ -1,6 +1,7 @@
 import re
 
-STATUS_QUEUED = "queued"
+
+STATUS_QUEUED = 'queued'
 STATUS_ACTIVE = 'active'
 STATUS_SUCCESS = 'success'
 STATUS_FAILED = 'failed'
@@ -23,6 +24,10 @@ CMD_CAPTURES = {
 		#r'^.{1,10}$',
 		# TODO: split exits in regex...
 		r'^There (is|are) .+ obvious exit(s|)\: (?P<exits>.+)\.$',
+	],
+	'locate furniture': [
+		r'^The (?P<item>.+) \((?P<id>\d+)\) is (?P<location>.+).$',
+		r'^(?!^The .+ \(\d+\) is .+.$)'
 	]
 }
 
@@ -38,21 +43,22 @@ CMD_CAPTURES['se'] = CMD_CAPTURES['l']
 CMD_CAPTURES['e'] = CMD_CAPTURES['l']
 CMD_CAPTURES['w'] = CMD_CAPTURES['l']
 
-# CMD_CAPTURES['up'] = CMD_CAPTURES['l']
-# CMD_CAPTURES['down'] = CMD_CAPTURES['l']
+CMD_CAPTURES['up'] = CMD_CAPTURES['l']
+CMD_CAPTURES['down'] = CMD_CAPTURES['l']
 
-# CMD_CAPTURES['forward'] = CMD_CAPTURES['l']
-# CMD_CAPTURES['backward'] = CMD_CAPTURES['l']
+CMD_CAPTURES['forward'] = CMD_CAPTURES['l']
+CMD_CAPTURES['backward'] = CMD_CAPTURES['l']
 
-# CMD_CAPTURES['left'] = CMD_CAPTURES['l']
-# CMD_CAPTURES['right'] = CMD_CAPTURES['l']
+CMD_CAPTURES['left'] = CMD_CAPTURES['l']
+CMD_CAPTURES['right'] = CMD_CAPTURES['l']
 
-# CMD_CAPTURES['out'] = CMD_CAPTURES['l']
+CMD_CAPTURES['out'] = CMD_CAPTURES['l']
 
-# TODO: make multi-line capture (one query)
+# TODO: make sure the data isn't being overwritten...
 def getCaptured(captures, lines):
 
 	all_captured = {}
+	items = []
 	
 	for line in lines:
 		for regex in captures:
@@ -60,6 +66,10 @@ def getCaptured(captures, lines):
 			if result:
 				groups = result.groupdict()
 				captured = {k:v for k,v in groups.items() if v is not None}
-				all_captured.update(captured)
-	
+				# TODO: too specific
+				if 'item' in groups.keys():
+					items.append(captured)
+				else:
+					all_captured.update(captured)
+	all_captured['items'] = items
 	return all_captured

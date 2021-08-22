@@ -18,31 +18,27 @@ LOG_FILE = '/home/zaya/Apps/MUSHclient/x/sync.in'
 # messages from python bot to client
 MSG_FILE = 'data/messages.json'
 
-### GOAL CHECKS
-# TODO: decide where to actually put this...
-# represent each goal as its desired end state.
+# AGENT = Agent({
+# 		# ... agent params go here ...
+# 		# missions:
+# 	})
 
-# search graph for unexpanded nodes
-def is_expanded(graph):
-	for node in self.GRAPH:
-		for edge in node.edges:
-			if not edge:
-				return False
-	return True
-### END GOAL CHECKS
-
-
-			
 if __name__ == "__main__":
 	
-	# init a player agent
-	player = Agent({
-		'name': 'Zaya', 
-		'goal': is_expanded
+	# create a new game from Environment config
+	game = Environment({
+		'agent': {
+			# ... agent params go here ...
+		},
+		# TODO: world-specific details 
+		'world': {
+			# ... world params go here ...
+			# REQUIRED: Regex Captures
+			'captures': ['todo']
+		},
+		# all missions the agent can choose from
+		'missions': [],
 	})
-	
-	# place agent in environment
-	game = Environment({'agent':player})
 	
 	# let's go!!
 	game.start()

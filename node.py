@@ -43,20 +43,17 @@ class Node:
 			offset_x, offset_y = offset[self.action]
 			self.x = parent_node.x + offset_x
 			self.y = parent_node.y + offset_y
+			
+		return node
 		
-	def _splitExits(self, exits):
-		txt = exits.replace(' and ', ', ')
-		exits = txt.split(', ')
-		return exits
+	def expand(self, node):
+		self.edges[node.action] = node.id
 		
 	def expanded(self):
 		# look for any False (unexplored) actions
 		return not [a for a in self.edges if not self.edges[a]]
+
+	# get all available actions (directional only)
+	def actions(self):
+		return self.edges
 		
-	def next(self):
-		for action in self.edges:
-			if not action:
-				return action
-		return False
-		
-	

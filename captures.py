@@ -1,75 +1,60 @@
-import re
+# matches everything EXCEPT player commands
+REGEX_RESPONSE = r'^[\WA-Z]'
 
+# matches basic user input (editors, etc. handled separately)
+REGEX_COMMAND = r'^[a-z]'
 
-STATUS_QUEUED = 'queued'
-STATUS_ACTIVE = 'active'
-STATUS_SUCCESS = 'success'
-STATUS_FAILED = 'failed'
-
-REGEX_FAILED = r'(That doesn\'t work\.$|Try something else\.$|What\?$)'
+# matches any error text
+REGEX_FAILED = r'(?P<failed>(^That doesn\'t work\.$|^Try something else\.$|What\?$))'
 
 CMD_CAPTURES = {
-	'i': [
+	'inventory': [
 		r'^You are (unburdened|burdened) \((?P<burden>\d+)\%\) by\:$',
 		r'^Holding \: (((?P<left>.+)) \(left hand\)|)((( and |)(?P<right>.+)) \(right hand\)\.$|)',
 		r'^Wearing \: (?P<wearing>.+)\.$',
 		r'^\(under\) \: (?P<under>.+)\.$',
 		r'^Carrying\: (?P<carrying>.+)\.$',
-		r'^Your purse contains (?P<purse>.+)\.$'
+		r'(^Your purse contains (?P<purse>.+)\.$|^You are just a disembodied (?P<dead>spirit))'
 	],
-	'l': [
-		# TODO: fix GMCP data...
-		r'{"identifier":"(?P<identifier>.+)","name":"(?P<name>.+)","visibility":(?P<visibility>\d+),"kind":"(?P<kind>.+)"}$',
-		r'^\[(?P<shortname>.+)\]$',
-		#r'^.{1,10}$',
-		# TODO: split exits in regex...
-		r'^There (is|are) .+ obvious exit(s|)\: (?P<exits>.+)\.$',
+	# TODO: p-shop browse as well
+	'list': [
+		r'^The following items are for sale:$',
+		r'^   (?P<id>.+)\: (?P<item>.+) for (?P<price>.+) \(.+\)\.$',
+		r'(?!^   (?P<id>.+)\: (?P<item>.+) for (?P<price>.+) \(.+\).*$'
 	],
-	'locate furniture': [
-		r'^The (?P<item>.+) \((?P<id>\d+)\) is (?P<location>.+).$',
-		r'^(?!^The .+ \(\d+\) is .+.$)'
+	'locate': [
+		r'^The (?P<item>.+) \((?P<id>\d+)\) is (?P<location>.+$).',
+		r'^(?!^The .+ \(\d+\) is (?P<location>.+)).*'
+	],
+	'look': [
+		# TODO: parse any json...
+		#r'{\"identifier\":\"(?P<identifier>.+)\",(\"tz\":(?P<tz>.+),|)\"name\":\"(?P<name>.+)\",(\"ty\":(?P<ty>\d+),|)(\"terrain\":(?P<terrain>.+),|)\"visibility\":(?P<visibility>\d+),(\"tx\":(?P<tx>.+),|)\"kind\":\"(?P<kind>.+)\"}$',
+		r'(?P<room_json>{\"identifier\".+$)',
+		r'^\[(?P<room_name>.+)\]$',
+		r'^There (is|are) .+ obvious exit(s|)\: (?P<room_exits_list>.+)\.$'
 	]
 }
 
-# aliases for directionals
-CMD_CAPTURES['n'] = CMD_CAPTURES['l']
-CMD_CAPTURES['nw'] = CMD_CAPTURES['l']
-CMD_CAPTURES['ne'] = CMD_CAPTURES['l']
+CMD_ALIASES = {
+	'look': [
+		'l',
+		'n', 's', 'e', 'w', 
+		'forward', 'backward',
+		'left', 'right',
+		'up', 'down',
+		'out',
+	],
+	'inventory': ['i']
+}
 
-CMD_CAPTURES['s'] = CMD_CAPTURES['l']
-CMD_CAPTURES['sw'] = CMD_CAPTURES['l']
-CMD_CAPTURES['se'] = CMD_CAPTURES['l']
 
-CMD_CAPTURES['e'] = CMD_CAPTURES['l']
-CMD_CAPTURES['w'] = CMD_CAPTURES['l']
 
-CMD_CAPTURES['up'] = CMD_CAPTURES['l']
-CMD_CAPTURES['down'] = CMD_CAPTURES['l']
-
-CMD_CAPTURES['forward'] = CMD_CAPTURES['l']
-CMD_CAPTURES['backward'] = CMD_CAPTURES['l']
-
-CMD_CAPTURES['left'] = CMD_CAPTURES['l']
-CMD_CAPTURES['right'] = CMD_CAPTURES['l']
-
-CMD_CAPTURES['out'] = CMD_CAPTURES['l']
-
-# TODO: make sure the data isn't being overwritten...
-def getCaptured(captures, lines):
-
-	all_captured = {}
-	items = []
-	
-	for line in lines:
-		for regex in captures:
-			result = re.search(regex, line)
-			if result:
-				groups = result.groupdict()
-				captured = {k:v for k,v in groups.items() if v is not None}
-				# TODO: too specific
-				if 'item' in groups.keys():
-					items.append(captured)
-				else:
-					all_captured.update(captured)
-	all_captured['items'] = items
-	return all_captured
+RESPONSE_CAPTURES = {
+	'prompt': [
+		r'(?P<prompt>^.+(\:$|\? ))(\((?P<options>.+)\)$|)',
+		r'(^(?P<response>[a-z].+)|^(?P<failed>[\WA-Z].+))'
+	],
+	'stats': [
+		r'{\"alignment\":\"(?P<alignment>.+)\",\"maxhp\":(?P<maxhp>\d+),\"hp\":(?P<hp>\d+),\"xp\":(?P<xp>\d+),\"maxgp\":(?P<maxgp>\d+),\"burden\":(?P<burden>\d+),\"gp\":(?P<gp>\d+)}',
+	]
+}

@@ -1,3 +1,4 @@
+import operator
 import random
 
 # utils
@@ -7,7 +8,10 @@ def colorNote(txt, color=False, bg=False, bold=False):
 	color_code = '\033[38;5;%dm' % color
 	bg_code = '\033[48;5;%dm' % bg if bg else ''
 	print(color_code + bg_code + txt + '\033[0m')
-	
+
+def fold(element, data):
+  return reduce(operator.getitem, element.split('_'), data)
+
 def splitTxtList(txt):
 	txt = txt.replace(' and ', ', ')
 	items = txt.split(', ')
@@ -23,8 +27,6 @@ direction_alias = {
 	'northwest': 'nw',
 	'southeast': 'se',
 	'southwest': 'sw',
-	# 'up': 'up',
-	# 'down': 'down'
 }
 
 alias_direction = {v: k for k, v in direction_alias.items()}

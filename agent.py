@@ -1,111 +1,47 @@
-# my includes
-from node import *
-from utils import *
+# standard python libraries
 import time
 import json
 
-MSG_FILE = 'data/messages.json'
+# my includes
+from node import *
+from utils import *
+
 
 class Agent:
-	
-	# combine all the captured data into a global state
-	WORLDSTATE = {
-		'room': {},
-		'inventory': {},
-		'prev_id': False
-	}
 	
 	# for graph-solving problems
 	# collection of nodes
 	EXPLORED = {}
+	
+	# all percepts combined into a single worldstate
+	WORLDSTATE = {}
 
-	# current "view" of the agent
+	# current "view" of the agents
 	percept = False
 	
 	def __init__(self, params):
 		# TODO: auto-expand params
-		self.name = params['name']
-		self.goal = params['goal']
+		#self.name = params['name']
 		
-		self.message('my first test message! :)')
+		# what does the agent want?
+		goals = params['goals'] if 'goals' in params else False
+		
+		# TODO: have agent meander towards goals
+		# handle existential crises
+		if not goals:
+			colorNote('ERROR: You don\'t know what you want! Try again.')
+			colorNote('It\'s okay! We\'ll just explore! :)')
 	
 	# get all actions
 	# without state, returns ALL actions in the environment
 	# with a state supplied, it returns ALL actions available at that moment.
-	def getAllActions(self, state=False):
-		pass
-	
-	# update agent's internal state
-	def update(self, percept):
-		# it's a room!
-		# TODO: this should be called by a goal somehow...
-		if 'exits' in percept:
-			# get a graph node
-			node = self.expand(percept)
-			# remember info
-			# self.remember(node)
-			# choose next action
-			next_action = self.next(node)
-			print('GO:', next_action)
-			#return self.next(next_action)
-	
-	# choose next action from internal state
-	def next(self, node):
-		# are there any unexplored nodes at all?
-		if self.checkGoal():
-			print('You got it already, champ! Good job!')
-			return False
+	def _actions(self, state=False):
+		return
 		
-		# return first unexplored edge of current node
-		if not node.expanded():
-			for a in node.edges:
-				if not node.edges[a]:
-					return a
-			
-		# what about any unexplored nodes up the tree?
-		check_node = node
-		while check_node:
-			if not check_node.expanded():
-				for a in check_node.edges:
-					if not check_node.edges[a]:
-						# return the reverse of the most recent action
-						return REVERSE_ACTION[node.action]
-			# move on to the next node...
-			parent_id = check_node.parent_id
-			check_node = self.EXPLORED[parent_id] if parent_id else False
-				
-		# uh oh! No unexplored nodes up the tree... what next???
-		print('Didn\'t find an unexplored node in the tree. :(')
-		
-		unexplored = self.getUnexpanded()
-		print('unexplored nodes:', unexplored)
+	def _expand(self, percept):
 	
-	# leave a message for the environment...
-	def message(self, msg_txt):
-		msg = {
-			'msg_txt': msg_txt,
-			'sent': int(time.time()),
-		}
-		
-		# write to log
-		f = open(MSG_FILE, 'a')
-		f.write(json.dumps(msg))
-		f.close()
-		
-		return True
-
-	def getUnexpanded(self, graph=False):
-		graph = graph if graph else self.EXPLORED
-		unexplored = [graph[n_id] for n_id in graph if not graph[n_id].expanded()]
-		return unexplored
-	
-	# add / update a node in EXPLORED, as well as the associated neighbors.
-	def expand(self, percept):
-		print('percept:', percept)
-		# TODO: probably move to update...
-		# goal check
-		# are all nodes expanded?
-		if self.checkGoal():
+		print('expand:')
+		if self.EXPLORED['expanded']:
 			return True
 		
 		# look for node in graph
@@ -129,7 +65,7 @@ class Agent:
 			# child to parent
 			node.edges[REVERSE_ACTION[node.action]] = parent_id
 		
-		# if an existing node already has a parent_id...
+		# in case a second parent emerges
 		prev_id = self.WORLDSTATE['prev_id']
 		if prev_id != parent_id:
 			prev_node = self.EXPLORED[prev_id]
@@ -138,24 +74,40 @@ class Agent:
 			# TODO: double check I need this...
 			self.EXPLORED[prev_id] = prev_node
 		
-		print('EXPANDED:', node.expanded())
-		[print(a, ':', node.edges[a]) for a in node.edges]
-		print('')
-		print('')
-		print('')
-		
 		self.EXPLORED[node.id] = node
+		
+		# is the map expanded?
+		self.EXPLORED['expanded'] = [self.EXPLORED[n_id].expanded() for n_id in self.EXPLORED]
 		
 		# finally, set prev node to current node
 		self.WORLDSTATE['prev_id'] = node.id
 
 		return node
+	
+	# update agent's internal state
+	# DEV: return a node if percept describes a room
+	def update(self, percept):
 		
-	# check every node for hanging edges
-	def checkGoal(self):
-		if self.EXPLORED:
-			expanded = [self.EXPLORED[n_id].expanded() for n_id in self.EXPLORED]
-			if all(expanded):
-				colorNote('~*~*~*~*~*~*~*~*~*~*~*~*\n!!!!!!!EXPANDED!!!!!!!!!\n~*~*~*~*~*~*~*~*~*~*~*~*')
-				return True
-		return False
+		# update internal state
+		print('update the worldstate:', percept)
+
+		# TODO: fucking messssyyy ew 
+		# NORMALILZE DATA (everything but rooms should have the correct structure
+		if 'identifier' in percept:
+			percept = {
+				'room': percept
+			}
+			
+		# ew, more of this crap. :(
+		if 'wearing' in percept:
+			percept = {
+				'inventory': percept
+			}
+		
+		# update WORLDSTATE
+		self.WORLDSTATE.update(percept)
+	
+	# update internal state, choose next action
+	def next(self, percept):
+		# update internal state
+		self.WORLDSTATE = self._update(percept)

@@ -1,13 +1,28 @@
 ### MAGIC COMMANDS
 MAP_START = False
 MAP_HISTORY = []
+
+def MAGIC_FN(phrase, map=False, state=False):
+	print('phrase', phrase)
+	# get camelcased function name
+	s = "".join(word[0].upper() + word[1:].lower() for word in phrase.split(' '))
+	fn_name = '_' + s[0].lower() + s[1:]
+	print('fn_name', fn_name)
+	
+	# run function (if it exists)
+	# TODO: how to get EXPLORED from agent???
+	if fn_name in globals():
+		globals()[fn_name]()
+	else:
+		print('*poof*')
+
 # just for development...
-def _mapStart(graph):
+def _mapStart(graph=False, state=False):
 	print('_mapStart')
 	MAP_START = True
 	return graph
 	
-def _mapShow(graph):
+def _mapShow(graph=False, state=False):
 	print('_mapShow')
 	
 	if not graph:
@@ -31,17 +46,17 @@ def _mapShow(graph):
 	for row in display_grid:
 		print(''.join(row))
 
-def _mapStop(graph):
+def _mapStop(graph=False, state=False):
 	print('_mapStop')
 	MAP_START = False
 	return graph
 	
-def _mapReset(graph):
+def _mapReset(graph=False, state=False):
 	print('_mapReset')
 	return []
 	
 # print data out using aima data representations... 
-def _mapPrint(graph):
+def _mapPrint(graph=False, state=False):
 	flat_graph = []
 	for node_id in graph:
 		node = graph[node_id]
@@ -57,7 +72,7 @@ def _mapPrint(graph):
 	print('---')
 	return graph
 	
-def _mapSave(graph):
+def _mapSave(graph=False, state=False):
 	print('Save JSON data:')
 	print(json.dumps(graph))
 	print('--------------')
@@ -65,19 +80,7 @@ def _mapSave(graph):
 ####### next
 # recommend next action...
 # (next unexplored action, closest to current position)
-def _mapNext(graph):
+def _mapNext(graph=False, state=False):
 	print('_mapNext')
-
 	
-# TODO: make dynamic...
-MAGIC_PHRASES = {
-	'You exclaim: START!!': _mapStart,
-	'You exclaim: SHOW!!': _mapShow,
-	'You exclaim: STOP!!': _mapStop,
-	'You exclaim: RESET!!': _mapReset,
-	'You exclaim: PRINT!!': _mapPrint,
-	'You exclaim: SAVE!!': _mapSave,
-	'You exclaim: NEXT!!': _mapNext
-}
-	
-### END MAGIC COMMANDS
+MAGIC_FN('map start')

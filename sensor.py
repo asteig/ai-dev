@@ -18,7 +18,13 @@ STATUS_SUCCESS = 'success'
 STATUS_FAILED = 'failed'
 
 # description of WORLDSTATE; initially False
+# described by the regex capture group names
+# all possible WORLDSTATE properties
+# TODO: build this dynamically from the captured data
 EMPTY_WORLDSTATE = {
+	'char': {
+		'dead': None
+	},
 	'room': {
 		'identifier': None,
 		'tz': None,
@@ -30,12 +36,22 @@ EMPTY_WORLDSTATE = {
 		'kind': None,
 		'exits': None
 	},
-	'list': {
-		'items': {
-			'id': None,
-			'item': None,
-			'price': None
-		}
+	'inventory': {
+		'burden': None,
+		'left': None,
+		'right': None,
+		'wearing': None,
+		'under': None,
+		'purse': None
+	},
+	'shop': {
+		'items': None,
+		'keeper': None
+	},
+	'container': {
+		'name': None,
+		'opened': None,
+		'contents': None
 	}
 }
 
@@ -64,6 +80,81 @@ class Sensor:
 		
 		# extract data from MUD response text
 		if 'response_txt' in self.data:
+			return self._handleResponseTxt()
+			
+		return False
+		
+	# collapse to WORLDSTATE data
+	# UNIVERSAL FORMATTING (should apply to all MUDs)
+	# NOTHING MUD-SPECIFIC BELOW THIS LINE!!!!!
+	def _format(self, captured_data):
+		nested_data = {}
+		# let's go through all the captured results...
+		for key in captured_data:
+			key_path = key.split('_')
+			raw_value = captured_data[key]
+			
+			# check for basic formatting...
+			if key_path[-1] == 'json':
+				key_path = key_path[:-1]
+				raw_value = json.loads(raw_value)
+			elif key_path[-1] == 'list':
+				key_path = key_path[:-1]
+				raw_value = splitTxtList(raw_value)
+			
+			# get a nested data object with specified key path
+			setNestedValue(nested_data, raw_value, key_path)
+
+		return nested_data
+		
+	# TODO: make sure the data isn't being overwritten...
+	def _getNamedCaptures(self):
+		# get current captures and response text
+		captures = self.active['captures']
+		response = self.active['response']
+
+		# combine all data
+		all_captured = {}
+		
+		# stack items
+		items = []
+		
+		# search each line of the response for named captures
+		for line in response:
+			for regex in captures:
+				if result := re.search(regex, line):
+					groups = result.groupdict()
+					captured = {k:v for k,v in groups.items() if v is not None}
+					
+					# only if there's data
+					if captured:
+						# TODO: too specific; should stack any repeated keys
+						if 'item' in groups.keys():
+							items.append(captured)
+						else:
+							all_captured.update(captured)
+		
+		# add item stack to captured data
+		if items:
+			if self.active['args']:
+				all_captured[self.active['args'][0]] = items
+			else:
+				all_captured['items'] = items
+				
+		# add root command back...
+		temp_captured = all_captured
+		all_captured = {}
+		all_captured[self.active['cmd_root']] = temp_captured
+
+		# filter raw matches 
+		return self._format(all_captured)
+		
+	# extract any data out of the response text
+	def _handleResponseTxt(self):
+		# ignore blank lines
+			if self.data['response_txt'].isspace():
+				return False
+			
 			# should we start the capture?
 			if self._start():
 				# starting capture; no data yet
@@ -80,72 +171,6 @@ class Sensor:
 				# ending capture; return data from captures
 				if self._stop(sText):
 					return self._getNamedCaptures()
-			
-		return False
-		
-	# collapse to WORLDSTATE data
-	# UNIVERSAL FORMATTING (should apply to all MUDs)
-	# NOTHING MUD-SPECIFIC BELOW THIS LINE!!!!!
-	def _filter(self, captured_data):
-		# only keep WORLDSTATE properties
-		filtered_data = EMPTY_WORLDSTATE.copy()
-		for name in captured_data:
-			# split into a path list
-			state_path = name.split('_')
-			
-			# get the raw value for this state property
-			raw_value = captured_data[name]
-			
-			# do some gross formatting... :(
-			# FORMATS DEFINED HERE:
-			# TODO: I'm only handling 2 levels :(
-			if state_path[-1] in ['json', 'list']:
-				# get format; remove it from state_path
-				state_path, frmt = state_path[:-1], state_path[-1]
-				
-				# decode json strings
-				if frmt == 'json':
-					frmt_value = json.loads(raw_value)
-					# add json data to filtered results
-					filtered_data[state_path[0]].update(frmt_value)
-				# split 'and' lists from descriptions
-				elif frmt == 'list':
-					frmt_value = splitTxtList(raw_value)
-					filtered_data[state_path[0]][state_path[1]] = frmt_value
-			# don't format this at all!!!
-			else:
-				filtered_data[state_path[0]][state_path[1]] = raw_value
-		
-		return filtered_data
-			
-	# TODO: make sure the data isn't being overwritten...
-	def _getNamedCaptures(self):
-		# get current captures and response text
-		captures = self.active['captures']
-		response = self.active['response']
-		
-		# combine all data
-		all_captured = {}
-		
-		# stack items
-		items = []
-		
-		# search each line of the response for named captures
-		for line in response:
-			for regex in captures:
-				if result := re.search(regex, line):
-					groups = result.groupdict()
-					captured = {k:v for k,v in groups.items() if v is not None}
-					# TODO: too specific; should stack any repeated keys
-					if 'item' in groups.keys():
-						items.append(captured)
-					else:
-						all_captured.update(captured)
-		if items:
-			all_captured['items'] = items
-			
-		# filter raw matches 
-		return self._filter(all_captured)
 
 	# add recognized commands to the capture queue
 	def _queueCapture(self, cmd_txt):
@@ -159,16 +184,23 @@ class Sensor:
 				cmd_root = cmd
 		
 		# add recognized command to queue
-		if cmd_root in self.captures:     
+		if cmd_root in self.captures:
+		
+			# make a new command
 			new_cmd = {
 				'action': cmd_root.lower(),
-				'args': cmd_args,
+				'args': cmd_args if cmd_args else False,
 				'cmd_root': cmd_root,
 				'captures': self.captures[cmd_root],
 				'data': {},
 				'response': [],
 				'status': STATUS_QUEUED,
 			}
+			
+			# # handle nested captures
+			# target = new_cmd['args'][0] if new_cmd['args'] else False
+			# if target and target in new_cmd['captures']:
+			# 	new_cmd['captures'] = new_cmd['captures'][target]
 			
 			# add command capture to the queue
 			self.CAPTURE_QUEUE.append(new_cmd)
@@ -207,7 +239,7 @@ class Sensor:
 		if self.active['status'] != STATUS_ACTIVE:
 			return False
 		
-		# if the last regex matches the last line of the response...
+		# is this the ending capture?
 		if re.search(self.active['captures'][-1], sText):
 			self.active['status'] = STATUS_SUCCESS
 			self.CAPTURE_HISTORY.append(self.active)

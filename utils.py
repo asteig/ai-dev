@@ -12,6 +12,12 @@ def colorNote(txt, color=False, bg=False, bold=False):
 def fold(element, data):
   return reduce(operator.getitem, element.split('_'), data)
 
+def setNestedValue(dict, value, path):
+	for level in path[:-1]:
+		dict = dict.setdefault(level, {})
+	dict[path[-1]] = value
+	return dict
+
 def splitTxtList(txt):
 	txt = txt.replace(' and ', ', ')
 	items = txt.split(', ')

@@ -30,9 +30,9 @@ CMD_CAPTURES = {
 	],
 	'look': [
 		# TODO: parse any json...
-		#r'{\"identifier\":\"(?P<identifier>.+)\",(\"tz\":(?P<tz>.+),|)\"name\":\"(?P<name>.+)\",(\"ty\":(?P<ty>\d+),|)(\"terrain\":(?P<terrain>.+),|)\"visibility\":(?P<visibility>\d+),(\"tx\":(?P<tx>.+),|)\"kind\":\"(?P<kind>.+)\"}$',
 		r'(?P<room_json>{\"identifier\".+$)',
 		r'^\[(?P<room_name>.+)\]$',
+		r'(?P<room_description>.+\.  .+\.)',
 		r'^There (is|are) .+ obvious exit(s|)\: (?P<room_exits_list>.+)\.$'
 	],
 	'value': [

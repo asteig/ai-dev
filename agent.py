@@ -39,13 +39,17 @@ class Agent:
 		return
 		
 	def _expand(self, percept):
-	
-		print('expand:')
-		if self.EXPLORED['expanded']:
-			return True
+		print(percept)
+		
+		# not room data...
+		if 'room' not in percept:
+			return False
+		
+		# get room info
+		room = percept['room']
 		
 		# look for node in graph
-		node_id = percept['identifier']
+		node_id = room['identifier']
 		# "I member!"
 		if node_id in self.EXPLORED:
 			colorNote('EXISTING NODE!!! '+node_id)
@@ -53,21 +57,22 @@ class Agent:
 		else:
 		# I need to add this one!
 			colorNote('NEW NODE!!! '+node_id)
-			parent_id = self.WORLDSTATE['prev_id']
-			percept['parent'] = self.EXPLORED[parent_id] if parent_id else False
-			node = Node(percept)
+			parent_id = self.WORLDSTATE['prev_id'] if 'prev_id' in self.WORLDSTATE else False
+			room['parent'] = self.EXPLORED[parent_id] if parent_id else False
+			room['action'] = percept['action']
+			node = Node(room)
 		
 		# update edges
 		parent_id = node.parent_id
-		if parent_id:
+		if parent_id and node.action in REVERSE_ACTION:
 			# parent to child
 			self.EXPLORED[parent_id].edges[node.action] = node.id
 			# child to parent
 			node.edges[REVERSE_ACTION[node.action]] = parent_id
 		
-		# in case a second parent emerges
-		prev_id = self.WORLDSTATE['prev_id']
-		if prev_id != parent_id:
+		# came in from a different direction...
+		prev_id = self.WORLDSTATE['prev_id'] if 'prev_id' in self.WORLDSTATE else False
+		if prev_id and prev_id != parent_id:
 			prev_node = self.EXPLORED[prev_id]
 			prev_node.edges[percept['action']] = node.id
 			node.edges[REVERSE_ACTION[percept['action']]] = prev_id
@@ -75,39 +80,51 @@ class Agent:
 			self.EXPLORED[prev_id] = prev_node
 		
 		self.EXPLORED[node.id] = node
-		
-		# is the map expanded?
-		self.EXPLORED['expanded'] = [self.EXPLORED[n_id].expanded() for n_id in self.EXPLORED]
+		print('EXPLORED', self.EXPLORED)
 		
 		# finally, set prev node to current node
 		self.WORLDSTATE['prev_id'] = node.id
 
 		return node
-	
-	# update agent's internal state
-	# DEV: return a node if percept describes a room
-	def update(self, percept):
-		
-		# update internal state
-		print('update the worldstate:', percept)
-
-		# TODO: fucking messssyyy ew 
-		# NORMALILZE DATA (everything but rooms should have the correct structure
-		if 'identifier' in percept:
-			percept = {
-				'room': percept
-			}
 			
-		# ew, more of this crap. :(
-		if 'wearing' in percept:
-			percept = {
-				'inventory': percept
-			}
-		
-		# update WORLDSTATE
-		self.WORLDSTATE.update(percept)
+	def _frontier(self):
+		return [n_id for n_id in self.EXPLORED if not self.EXPLORED[n_id].expanded()]
 	
 	# update internal state, choose next action
 	def next(self, percept):
+		print(percept)
 		# update internal state
-		self.WORLDSTATE = self._update(percept)
+		self.percept = percept
+		
+		# expand the internal map
+		node = self._expand(percept)
+		
+		# what direction now?
+		# is the frontier empty?
+		frontier = self._frontier()
+		
+		# nothing left to explore...
+		if not frontier:
+			return False
+		
+		# our current room has unexplored exits
+		if node.id in frontier:
+			# return first unexplored edge...
+			for action in node.edges:
+				if not node.edges[action]:
+					return action
+		
+		# what about any unexplored nodes up the tree?
+		check_node = node
+		while check_node:
+			if not check_node.expanded():
+				for action in check_node.edges:
+					if not check_node.edges[action]:
+						print('check_node', check_node)
+						return action
+			# move on to the next node...
+			parent_id = check_node.parent_id
+			check_node = self.EXPLORED[parent_id] if parent_id else False
+				
+		# TODO: probably some edge cases to catch...
+		print('HEY! What\'s going on?!')

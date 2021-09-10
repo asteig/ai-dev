@@ -1,9 +1,14 @@
 # standard python libraries
+import json
 from sh import tail
 
 # my stuff
-from sensor import Sensor
 from agent import Agent
+from sensor import Sensor
+from utils import *
+
+# the file MUSHcleint checks for new commands
+APP_FILE_SRC = '/home/zaya/Apps/MUSHclient/x/remote_commands.json'
 
 class Environment: 
 
@@ -24,15 +29,31 @@ class Environment:
 		print('data:', data)
 	
 	def EXECUTE(self, cmd_txt):
-		print('WOAH! EXECUTE THIS:', cmd_txt)
+		# send command to client...
+		message = {}
+		message['cmd'] = cmd_txt
+		message['sent'] = UTC_UNIX_EPOCH()
+		
+		# write to remote command file
+		file = open(APP_FILE_SRC, 'a')
+		file.write(json.dumps(message)+'\n')
+		file.close()
 	
 	def start(self):
+		# clear message log
+		file = open(APP_FILE_SRC, 'w')
+		file.write('')
+		file.close()
+		
 		# runs forever 
 		while True:
 			for packet in tail('-f', '/home/zaya/Apps/MUSHclient/x/sync.in', _iter=True):
-				
 				# update the agent of any changes to the WORLDSTATE
 				if data := self.sensor.read(packet):
-					self.agent.update(data)
+					if next_action := self.agent.next(data):
+						self.EXECUTE(next_action)
+					
+					
+
 					
 			# repeat forever! :D

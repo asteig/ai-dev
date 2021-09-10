@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 import operator
 import random
 
@@ -22,6 +23,10 @@ def splitTxtList(txt):
 	txt = txt.replace(' and ', ', ')
 	items = txt.split(', ')
 	return items
+
+# get seconds since the unix epoch, UTC
+def UTC_UNIX_EPOCH():
+	return int(datetime.now(timezone.utc).timestamp())
 	
 direction_alias = {
 	'look': 'l',
@@ -35,7 +40,7 @@ direction_alias = {
 	'southwest': 'sw',
 }
 
-alias_direction = {v: k for k, v in direction_alias.items()}
+ALIAS_DIRECTION = {v: k for k, v in direction_alias.items()}
 
 REVERSE_ACTION = {
 	'n': 's',
@@ -46,7 +51,7 @@ REVERSE_ACTION = {
 	'nw': 'se',
 	'se': 'nw',
 	'sw': 'ne',
-	'l': 'l'
+	'l': 'l',
 	# 'up': 'down',
 	# 'down': 'up'
 }

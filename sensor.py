@@ -17,50 +17,14 @@ STATUS_ACTIVE = 'active'
 STATUS_SUCCESS = 'success'
 STATUS_FAILED = 'failed'
 
-# description of WORLDSTATE; initially False
-# described by the regex capture group names
-# all possible WORLDSTATE properties
-# TODO: build this dynamically from the captured data
-EMPTY_WORLDSTATE = {
-	'char': {
-		'dead': None
-	},
-	'room': {
-		'identifier': None,
-		'tz': None,
-		'name': None,
-		'ty': None,
-		'terrain': None,
-		'visibility': None,
-		'tx': None,
-		'kind': None,
-		'exits': None
-	},
-	'inventory': {
-		'burden': None,
-		'left': None,
-		'right': None,
-		'wearing': None,
-		'under': None,
-		'purse': None
-	},
-	'shop': {
-		'items': None,
-		'keeper': None
-	},
-	'container': {
-		'name': None,
-		'opened': None,
-		'contents': None
-	}
-}
-
-
 class Sensor:
 	
 	# queue all commands waiting for a response
 	CAPTURE_QUEUE = []
 	CAPTURE_HISTORY = []
+	
+	# state data; initially False
+	state = False
 	
 	# set capture groups
 	def __init__(self, captures):
@@ -80,8 +44,11 @@ class Sensor:
 		
 		# extract data from MUD response text
 		if 'response_txt' in self.data:
-			return self._handleResponseTxt()
-			
+			if captured_data := self._handleResponseTxt():
+				print('FOUND!', captured_data)
+				return captured_data
+				
+		# no data yet...
 		return False
 		
 	# collapse to WORLDSTATE data
@@ -104,7 +71,11 @@ class Sensor:
 			
 			# get a nested data object with specified key path
 			setNestedValue(nested_data, raw_value, key_path)
-
+			
+			# TODO: proper place? :(
+			# add action to captured data
+			nested_data['action'] = self.active['action']
+			
 		return nested_data
 		
 	# TODO: make sure the data isn't being overwritten...
@@ -140,37 +111,34 @@ class Sensor:
 				all_captured[self.active['args'][0]] = items
 			else:
 				all_captured['items'] = items
-				
-		# add root command back...
-		temp_captured = all_captured
-		all_captured = {}
-		all_captured[self.active['cmd_root']] = temp_captured
 
 		# filter raw matches 
 		return self._format(all_captured)
 		
 	# extract any data out of the response text
 	def _handleResponseTxt(self):
-		# ignore blank lines
-			if self.data['response_txt'].isspace():
-				return False
-			
-			# should we start the capture?
-			if self._start():
-				# starting capture; no data yet
-				return False
-			
-			# only add response when sensor is actively capturing
-			if self.active and self.active['status'] == STATUS_ACTIVE:
-				# get most-recent response text from MUD
-				sText = self.data['response_txt']
-				
-				# add response text to capture
-				self.active['response'].append(sText)
+		# get most recent line of output
+		sText = self.data['response_txt']
 
-				# ending capture; return data from captures
-				if self._stop(sText):
-					return self._getNamedCaptures()
+		# ignore blank lines
+		if sText.isspace():
+			return False
+		
+		# should we start the capture?
+		if self._start():
+			# starting capture; no data yet
+			return False
+		
+		# only add response when sensor is actively capturing
+		if self.active and self.active['status'] == STATUS_ACTIVE:
+			# add response text to capture
+			self.active['response'].append(sText)
+
+			# ending capture; save results
+			if self._stop(sText):
+				# get captured data
+				return self._getNamedCaptures()
+					
 
 	# add recognized commands to the capture queue
 	def _queueCapture(self, cmd_txt):
@@ -215,7 +183,7 @@ class Sensor:
 	def _start(self):
 		# get active capture
 		self.active = self.CAPTURE_QUEUE[0] if self.CAPTURE_QUEUE else False
-		
+
 		# only queued captures can be started...
 		if self.active and self.active['status'] == STATUS_QUEUED:
 			# if the first regex matches current line

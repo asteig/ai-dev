@@ -7,6 +7,9 @@ from node import *
 from utils import *
 
 
+# TODO: obviously find a home for this with goals...
+EXPAND = False
+
 class Agent:
 	
 	# for graph-solving problems
@@ -96,35 +99,37 @@ class Agent:
 		# update internal state
 		self.percept = percept
 		
-		# expand the internal map
-		node = self._expand(percept)
-		
-		# what direction now?
-		# is the frontier empty?
-		frontier = self._frontier()
-		
-		# nothing left to explore...
-		if not frontier:
-			return False
-		
-		# our current room has unexplored exits
-		if node.id in frontier:
-			# return first unexplored edge...
-			for action in node.edges:
-				if not node.edges[action]:
-					return action
-		
-		# what about any unexplored nodes up the tree?
-		check_node = node
-		while check_node:
-			if not check_node.expanded():
-				for action in check_node.edges:
-					if not check_node.edges[action]:
-						print('check_node', check_node)
+		if EXPAND:
+			# expand the internal map
+			node = self._expand(percept)
+			
+			# what direction now?
+			# is the frontier empty?
+			frontier = self._frontier()
+			
+			# nothing left to explore...
+			if not frontier:
+				return False
+			
+			# our current room has unexplored exits
+			if node.id in frontier:
+				# return first unexplored edge...
+				for action in node.edges:
+					if not node.edges[action]:
 						return action
-			# move on to the next node...
-			parent_id = check_node.parent_id
-			check_node = self.EXPLORED[parent_id] if parent_id else False
-				
-		# TODO: probably some edge cases to catch...
-		print('HEY! What\'s going on?!')
+			
+			# what about any unexplored nodes up the tree?
+			check_node = node
+			while check_node:
+				if not check_node.expanded():
+					for action in check_node.edges:
+						if not check_node.edges[action]:
+							print('check_node', check_node)
+							return action
+				# move on to the next node...
+				parent_id = check_node.parent_id
+				check_node = self.EXPLORED[parent_id] if parent_id else False
+					
+			# TODO: probably some edge cases to catch... maybe?
+			# TODO: record this somewhere if it ever happens......
+			print('HEY! What\'s going on?!')

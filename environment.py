@@ -10,6 +10,10 @@ from utils import *
 # the file MUSHcleint checks for new commands
 APP_FILE_SRC = '/home/zaya/Apps/MUSHclient/x/remote_commands.json'
 
+# global action sequence...
+# mainly used for merging command queues...
+ACTION_QUEUE = []
+
 class Environment: 
 
 	def __init__(self, params):
@@ -28,6 +32,9 @@ class Environment:
 	def _update(self, data):
 		print('data:', data)
 	
+	# WARNING: this will ACTUALLY SEND a command to the MUD!!!!
+	# (make sure you're not calling this infinitely, etc...)
+	# TODO: handle that ^^^^
 	def EXECUTE(self, cmd_txt):
 		# send command to client...
 		message = {}
@@ -50,10 +57,8 @@ class Environment:
 			for packet in tail('-f', '/home/zaya/Apps/MUSHclient/x/sync.in', _iter=True):
 				# update the agent of any changes to the WORLDSTATE
 				if data := self.sensor.read(packet):
+					# ask agent wtf to do next...
 					if next_action := self.agent.next(data):
-						self.EXECUTE(next_action)
-					
-					
-
+						ACTION_QUEUE.add(next_action)
 					
 			# repeat forever! :D

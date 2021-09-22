@@ -5,10 +5,12 @@ license: public domain
 
 The Sensor class listens for the beginning and ending regexes of a particular command and returns the named capture groups from the regexes.
 """
+# standard libraries
 import json
 import re
 import time
 
+# my stuff
 from captures import *
 from utils import *
 
@@ -23,12 +25,21 @@ class Sensor:
 	CAPTURE_QUEUE = []
 	CAPTURE_HISTORY = []
 	
+	# keep track of current room
+	CURRENT_ROOM_ID = False
+	
 	# state data; initially False
 	state = False
 	
 	# set capture groups
-	def __init__(self, captures):
+	def __init__(self, captures=False):
+		# set default captures
 		self.captures = CMD_CAPTURES
+		
+		# add any task-specific captures
+		if captures:
+			for cmd in captures:
+				self.captures[cmd] = captures
 		
 	"""
 	return: data of a completed capture or False
@@ -46,6 +57,9 @@ class Sensor:
 		if 'response_txt' in self.data:
 			if captured_data := self._handleResponseTxt():
 				print('FOUND!', captured_data)
+				if 'room' in captured_data:
+					self.CURRENT_ROOM_ID = captured_data['room']['identifier']
+					print('CHANGING ROOM:', self.CURRENT_ROOM_ID)
 				return captured_data
 				
 		# no data yet...
@@ -95,7 +109,7 @@ class Sensor:
 			for regex in captures:
 				if result := re.search(regex, line):
 					groups = result.groupdict()
-					captured = {k:v for k,v in groups.items() if v is not None}
+					captured = {k:v.strip() for k,v in groups.items() if v is not None}
 					
 					# only if there's data
 					if captured:
@@ -137,26 +151,37 @@ class Sensor:
 			# ending capture; save results
 			if self._stop(sText):
 				# get captured data
-				return self._getNamedCaptures()
+				captured = self._getNamedCaptures()
+				
+				# set new room id
+				if 'room' in captured:
+					print('changing room...')
+					self.CURRENT_ROOM_ID = captured['room']['identifier']
+				
+				return captured
 					
 
 	# add recognized commands to the capture queue
 	def _queueCapture(self, cmd_txt):
+		new_cmd = False
+		
 		# parse command line
 		cmd_root = cmd_txt.split(' ')[0]
 		cmd_args = cmd_txt.split(' ')[1:]
+		
+		action = cmd_root.lower()
 		
 		# expand alias
 		for cmd in CMD_ALIASES:
 			if cmd_root in CMD_ALIASES[cmd]:
 				cmd_root = cmd
-		
+				
 		# add recognized command to queue
-		if cmd_root in self.captures:
+		if cmd_root in self.captures or cmd_root:
 		
 			# make a new command
 			new_cmd = {
-				'action': cmd_root.lower(),
+				'action': action,
 				'args': cmd_args if cmd_args else False,
 				'cmd_root': cmd_root,
 				'captures': self.captures[cmd_root],
@@ -165,20 +190,34 @@ class Sensor:
 				'status': STATUS_QUEUED,
 			}
 			
-			# # handle nested captures
-			# target = new_cmd['args'][0] if new_cmd['args'] else False
-			# if target and target in new_cmd['captures']:
-			# 	new_cmd['captures'] = new_cmd['captures'][target]
-			
+				# override default capture groups with room-specific ones
+		if self.CURRENT_ROOM_ID in ROOM_CAPTURES:
+			print('CUSTOM !!!!')
+			if action in ROOM_CAPTURES[self.CURRENT_ROOM_ID]:
+				if not new_cmd:
+					# make a new command
+					new_cmd = {
+						'action': action,
+						'args': cmd_args if cmd_args else False,
+						'cmd_root': cmd_root,
+						'captures': ROOM_CAPTURES[self.CURRENT_ROOM_ID][action],
+						'data': {},
+						'response': [],
+						'status': STATUS_QUEUED,
+					}
+				else:
+					new_cmd['captures'] = ROOM_CAPTURES[self.CURRENT_ROOM_ID][action]
+		
+		if new_cmd:
 			# add command capture to the queue
 			self.CAPTURE_QUEUE.append(new_cmd)
-			
+
 			# no data to return yet
 			return False
 				
 		# wtf do you want me to do with this???
-		print('I don\'t know that command!', cmd_root)
-		False
+		print('I don\'t know that command!!!!!!', cmd_root)
+		return False
 	
 	def _start(self):
 		# get active capture

@@ -15,7 +15,8 @@ def MAGIC_FN(phrase, map=False, state=False):
 		globals()[fn_name]()
 	else:
 		print('*poof*')
-
+		
+### MAP STUFFZ
 # just for development...
 def _mapStart(graph=False, state=False):
 	print('_mapStart')
@@ -82,5 +83,6 @@ def _mapSave(graph=False, state=False):
 # (next unexplored action, closest to current position)
 def _mapNext(graph=False, state=False):
 	print('_mapNext')
+	
 	
 MAGIC_FN('map start')

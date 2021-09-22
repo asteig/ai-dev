@@ -16,7 +16,6 @@ CMD_CAPTURES = {
 		r'^Carrying\: (?P<inventory_carrying_list>.+)\.$',
 		r'(^Your purse contains (?P<inventory_purse_list>.+)\.$|^You are just a disembodied (?P<char_dead>spirit))'
 	],
-	# TODO: p-shop browse as well
 	'list': [
 		r'^The following items are for sale:$',
 		r'^   (?P<id>.+)\: (?P<item>.+) for (?P<price>.+) \(.+\)\.$',
@@ -39,12 +38,12 @@ CMD_CAPTURES = {
 		r'^You estimate that the (?P<value_item>.+) is worth (?P<value_amount>.+)\.  ',
 		r'^(?!You estimate that the .+ is worth .+\.)'
 	],
-	'help': {
-		r'((?P<help_type>.+) \b\w+\b room help|((?P<failed>There is no help available for this room\.$))',
-		r'(\w.+ - (?P<help_description>.+)',
-		r'^\ {5}(?P<help_cmd>\w+) (?P<help_syntax>([^\w]).+)',
-		r'^See also'
-	}
+	# 'help': {
+	# 	r'((?P<help_type>.+) \b\w+\b room help|((?P<failed>There is no help available for this room\.$))',
+	# 	r'(\w.+ - (?P<help_description>.+)',
+	# 	r'^\ {5}(?P<help_cmd>\w+) (?P<help_syntax>([^\w]).+)',
+	# 	r'^See also'
+	# }
 	
 }
 
@@ -68,4 +67,30 @@ RESPONSE_CAPTURES = {
 	'stats': [
 		r'{\"alignment\":\"(?P<alignment>.+)\",\"maxhp\":(?P<maxhp>\d+),\"hp\":(?P<hp>\d+),\"xp\":(?P<xp>\d+),\"maxgp\":(?P<maxgp>\d+),\"burden\":(?P<burden>\d+),\"gp\":(?P<gp>\d+)}',
 	]
+}
+
+# room-specific captures (sometimes overriding commands)
+ROOM_CAPTURES = {
+	'd2265a457a2d8adec9d30100fa6302e8477f045e': {
+		'list': [
+			r'Appetisers', # start expression
+			r'    (?P<item_txt>.+) +A\$(?P<item_price>.+)', # parse captured data
+			r'McWater' # end expression
+		],
+		# listen for the following updates...
+		'take': [
+			r'The queue moves forward as (?P<order_npc>.+) approach',
+			r'says\: (?P<order_txt>.+)'
+		],
+		'charge': [
+			r'The total comes to (?P<order_total>.+)\.',
+			r'you (?P<order_paid>.+) which you place in the register',
+		],
+		'refund': [
+			r'You tear the receipt for order \#(?P<order_num>\d+)',
+		],
+		'add': [
+			r'add A\$(?P<register_add>\d+\.\d+).+A\$(?P<register_total>\d+\.\d+)'
+		]
+	}
 }

@@ -74,7 +74,7 @@ ROOM_CAPTURES = {
 	'd2265a457a2d8adec9d30100fa6302e8477f045e': {
 		'list': [
 			r'Appetisers', # start expression
-			r'    (?P<item>.+) +A\$(?P<price>.+)', # parse captured data
+			r'(?P<item>Mc\w+)[^M]+(?P<item2>Mc\w+|) +A\$(?P<price>.+)', # parse captured data
 			r'McWater' # end expression
 		],
 		'take': [

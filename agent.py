@@ -160,7 +160,6 @@ class Agent:
 		action_args = cmd_txt.split(' ')
 		action, args = action_args[0], action_args[1:]
 		
-		print('ACTION:', action)
 		# if action not in MEMORY['cmds']:
 		# 	# TODO: 
 		# 	return False
@@ -180,12 +179,12 @@ class Agent:
 		
 		# add to the global action sequence; 
 		# TODO: merged with commands from the environment
-		print('ACTION TO TAKE:', new_cmd)
+		#print('ACTION TO TAKE:', new_cmd)
 		#ACTION_QUEUE.append(new_cmd)
 
 	# update internal state, choose next action
 	def next(self, percept):
-		print(percept)
+
 		# update internal state
 		self.percept = percept
 		

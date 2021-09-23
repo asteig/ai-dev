@@ -56,10 +56,8 @@ class Sensor:
 		# extract data from MUD response text
 		if 'response_txt' in self.data:
 			if captured_data := self._handleResponseTxt():
-				print('FOUND!', captured_data)
 				if 'room' in captured_data:
 					self.CURRENT_ROOM_ID = captured_data['room']['identifier']
-					print('CHANGING ROOM:', self.CURRENT_ROOM_ID)
 				return captured_data
 				
 		# no data yet...
@@ -70,6 +68,7 @@ class Sensor:
 	# NOTHING MUD-SPECIFIC BELOW THIS LINE!!!!!
 	def _format(self, captured_data):
 		nested_data = {}
+		items = []
 		# let's go through all the captured results...
 		for key in captured_data:
 			key_path = key.split('_')
@@ -82,10 +81,10 @@ class Sensor:
 			elif key_path[-1] == 'list':
 				key_path = key_path[:-1]
 				raw_value = splitTxtList(raw_value)
-			
+
 			# get a nested data object with specified key path
 			setNestedValue(nested_data, raw_value, key_path)
-			
+
 			# TODO: proper place? :(
 			# add action to captured data
 			nested_data['action'] = self.active['action']
@@ -126,6 +125,10 @@ class Sensor:
 			else:
 				all_captured['items'] = items
 
+		print('ALL CAPTURED-------------------------------')
+		print(all_captured)
+		print('-------------------------------------------')
+
 		# filter raw matches 
 		return self._format(all_captured)
 		
@@ -155,8 +158,12 @@ class Sensor:
 				
 				# set new room id
 				if 'room' in captured:
-					print('changing room...')
-					self.CURRENT_ROOM_ID = captured['room']['identifier']
+					room_id = captured['room']['identifier']
+					if self.CURRENT_ROOM_ID != room_id:
+						self.CURRENT_ROOM_ID = room_id
+				
+				if 'item' in captured and 'items' in captured:
+					captured.pop('item')
 				
 				return captured
 					
@@ -177,7 +184,7 @@ class Sensor:
 				cmd_root = cmd
 				
 		# add recognized command to queue
-		if cmd_root in self.captures or cmd_root:
+		if cmd_root in self.captures:
 		
 			# make a new command
 			new_cmd = {
@@ -190,9 +197,8 @@ class Sensor:
 				'status': STATUS_QUEUED,
 			}
 			
-				# override default capture groups with room-specific ones
+		# override default capture groups with room-specific ones
 		if self.CURRENT_ROOM_ID in ROOM_CAPTURES:
-			print('CUSTOM !!!!')
 			if action in ROOM_CAPTURES[self.CURRENT_ROOM_ID]:
 				if not new_cmd:
 					# make a new command

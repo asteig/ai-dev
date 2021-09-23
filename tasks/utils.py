@@ -81,8 +81,7 @@ def WAIT(queue={}, cmd_id='0'):
 		n_runs = n_runs + 1
 	
 	print('out of runs!')
-
-
+			
 direction_alias = {
 	'look': 'l',
 	'north': 'n',

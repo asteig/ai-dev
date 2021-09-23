@@ -74,13 +74,12 @@ ROOM_CAPTURES = {
 	'd2265a457a2d8adec9d30100fa6302e8477f045e': {
 		'list': [
 			r'Appetisers', # start expression
-			r'    (?P<item_txt>.+) +A\$(?P<item_price>.+)', # parse captured data
+			r'    (?P<item>.+) +A\$(?P<price>.+)', # parse captured data
 			r'McWater' # end expression
 		],
-		# listen for the following updates...
 		'take': [
 			r'The queue moves forward as (?P<order_npc>.+) approach',
-			r'says\: (?P<order_txt>.+)'
+			r'(?P<qty>two|three|four|five|) (?P<prep>Fried|Boiled|)( |)(?P<item>Mc\w+)'
 		],
 		'charge': [
 			r'The total comes to (?P<order_total>.+)\.',

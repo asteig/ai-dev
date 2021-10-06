@@ -1,6 +1,7 @@
 # standard python libraries
 import json
 from sh import tail
+import time
 
 # my stuff
 from agent import Agent
@@ -36,10 +37,12 @@ class Environment:
 	# (make sure you're not calling this infinitely, etc...)
 	# TODO: handle that ^^^^
 	def EXECUTE(self, cmd_txt):
+		# make sure I'm not queuing commands super quickly
+		time.sleep(5)
+		
 		# send command to client...
 		message = {}
-		message['cmd'] = cmd_txt
-		message['sent'] = UTC_UNIX_EPOCH()
+		message['cmd_txt'] = cmd_txt
 		
 		# write to remote command file
 		file = open(APP_FILE_SRC, 'a')
@@ -56,9 +59,15 @@ class Environment:
 		while True:
 			for packet in tail('-f', '/home/zaya/Apps/MUSHclient/x/sync.in', _iter=True):
 				# update the agent of any changes to the WORLDSTATE
+				# print('PACKET DATA----------------')
+				# data = json.loads(packet)
+				# [print(k, data[k]) for k in data]
+				# print('----------------------')
 				if data := self.sensor.read(packet):
 					# ask agent wtf to do next...
 					if next_action := self.agent.next(data):
-						ACTION_QUEUE.add(next_action)
+						print('EXECUTE:', next_action)
+					else:
+						colorNote('no next action :)')
 					
 			# repeat forever! :D

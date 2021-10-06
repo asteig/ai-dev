@@ -125,10 +125,6 @@ class Sensor:
 			else:
 				all_captured['items'] = items
 
-		print('ALL CAPTURED-------------------------------')
-		print(all_captured)
-		print('-------------------------------------------')
-
 		# filter raw matches 
 		return self._format(all_captured)
 		

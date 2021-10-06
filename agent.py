@@ -11,7 +11,7 @@ from utils import *
 
 # TODO: obviously find a home for this with goals...
 # lazy "modes"!
-MODE_EXPAND = False
+MODE_EXPAND = True
 
 # possible statuses for a command... 
 STATUS_QUEUED = 'queued'
@@ -19,7 +19,7 @@ STATUS_ACTIVE = 'active'
 STATUS_SUCCESS = 'success'
 STATUS_FAILED = 'failed'
 
-CURRENT_TASK = 'McCounter'
+#CURRENT_TASK = 'McCounter'
 
 class Agent:
 	
@@ -37,13 +37,9 @@ class Agent:
 		# TODO: auto-expand params
 		#self.name = params['name']
 		
-		# test exec functionality...
-		# start by looking around...
-		self._exec('l')
-		
 		# task-specific logic
-		if CURRENT_TASK:
-			self.task = Task(CURRENT_TASK)
+		# if CURRENT_TASK:
+		# 	self.task = Task(CURRENT_TASK)
 		
 		# what does the agent want?
 		self.goals = params['goals'] if 'goals' in params else False
@@ -61,9 +57,8 @@ class Agent:
 		return
 	
 	# TODO: move to tasks
-	def _expand(self, percept):
-		print(percept)
-		
+	def _expand(self, percept):	
+		print('let\'s expand!')	
 		# not room data...
 		if 'room' not in percept:
 			return False
@@ -73,9 +68,10 @@ class Agent:
 		
 		# look for node in graph
 		node_id = room['identifier']
+
 		# "I member!"
-		if node_id in explored:
-			colorNote('EXISTING NODE!!! '+node_id)
+		if node_id in self.EXPLORED:
+			colorNote('EXISTING NODE!!! '+self.EXPLORED[node_id].name)
 			node = self.EXPLORED[node_id]
 		else:
 		# I need to add this one!
@@ -103,8 +99,7 @@ class Agent:
 			self.EXPLORED[prev_id] = prev_node
 		
 		self.EXPLORED[node.id] = node
-		print('EXPLORED', self.EXPLORED)
-		
+
 		# TODO: should I move this logic to a knowledge base?
 		if not self._frontier():
 			# already expanded; no need to expand any more!
@@ -119,11 +114,15 @@ class Agent:
 		
 		# nothing left to explore...
 		if not frontier:
+			colorNote('~*~*~*~*~*~*~*~ALL EXPLORED!!!~*~*~*~*~*~*~*~')
 			return False
 		
+		print('----', 'CURRENT ROOM:', node.name, '----')
+		print('x:', node.x, 'y:', node.y)
 		# our current room has unexplored exits
 		if node.id in frontier:
 			# return first unexplored edge...
+			print('EDGES', node.edges)
 			for action in node.edges:
 				if not node.edges[action]:
 					return action
@@ -133,9 +132,9 @@ class Agent:
 		while check_node:
 			if not check_node.expanded():
 				for action in check_node.edges:
+					# climb back up the tree
 					if not check_node.edges[action]:
-						print('check_node', check_node)
-						return action
+						return REVERSE_ACTION[node.action]
 			# move on to the next node...
 			parent_id = check_node.parent_id
 			check_node = self.EXPLORED[parent_id] if parent_id else False
@@ -143,48 +142,12 @@ class Agent:
 		return False
 			
 	def _frontier(self):
-		return [n_id for n_id in self.EXPLORED if not self.EXPLORED[n_id].expanded()]
-	
-	# add a new command to the global queue; shared with environment...
-	# WARNING: this will ACTUALLY SEND a command to the MUD!!!!
-	# (make sure you're not calling this infinitely, etc...)
-	# (or when you're not supposed to!!!)
-	# TODO: handle that ^^^^
-	def _exec(self, cmd_txt):
-		
-		# then go back to the original command...
-		cmd_txt = cmd_txt
-
-		# TODO: validate "action" before attempting execution...
-		# is this a command we know already?
-		action_args = cmd_txt.split(' ')
-		action, args = action_args[0], action_args[1:]
-		
-		# if action not in MEMORY['cmds']:
-		# 	# TODO: 
-		# 	return False
-
-		# add a timestamped command to the global queue to wait for execution...
-		new_cmd = {
-			# revert to the unmodified command text (ignores validation...)
-			'cmd_txt': cmd_txt,
-			'sent': UTC_UNIX_EPOCH(),
-			# everything starts out at queued...
-			# TODO: validate command before attempting execution...
-			'status': STATUS_QUEUED
-		}
-		
-		# get a unique id for this command (to handle timestamp collisions)
-		new_cmd['id'] = UNIQUE_ID()
-		
-		# add to the global action sequence; 
-		# TODO: merged with commands from the environment
-		#print('ACTION TO TAKE:', new_cmd)
-		#ACTION_QUEUE.append(new_cmd)
+		unexplored = [n_id for n_id in self.EXPLORED if not self.EXPLORED[n_id].expanded()]
+		return unexplored
 
 	# update internal state, choose next action
 	def next(self, percept):
-
+		print('AGENT NEXT_____________________')
 		# update internal state
 		self.percept = percept
 		
@@ -193,7 +156,8 @@ class Agent:
 		if MODE_EXPAND:
 			# expand the internal map
 			next_action = self._expand(percept)
+			return next_action
 			
-		if self.task: 
-			# ALL tasks need a next function!!!
-			self.task.next(percept)
+		# if self.task: 
+		# 	# ALL tasks need a next function!!!
+		# 	self.task.next(percept)

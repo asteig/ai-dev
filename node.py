@@ -6,6 +6,7 @@ class Node:
 		parent_node = state['parent']
 		
 		self.id = state['identifier']
+		self.name = state['name']
 		self.action = state['action']
 		self.edges = {}
 		
@@ -23,16 +24,17 @@ class Node:
 				self.edges[direction_alias[a]] = False
 		
 		# edge back to parent...
-		if self.parent_id and self.action in ALIAS_DIRECTION:
+		if self.parent_id and self.action in available_actions:
 			self.edges[REVERSE_ACTION[self.action]] = self.parent_id
 		
 		# get x-y coords
 		offset = {
-			#'l': [  0,   0],
-			'n': [  0,  -1],
-			's': [  0,   1],
-			'e': [  1,   0],
-			'w': [ -1,   0],
+			'n':    [  0,  -1],
+			's':    [  0,   1],
+			'e':    [  1,   0],
+			'w':    [ -1,   0],
+			# 'up':   [ -1,  -2],
+			# 'down': [  1,   2],
 		}
 		
 		# start at origin

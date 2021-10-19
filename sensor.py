@@ -23,11 +23,10 @@ class Sensor:
 	
 	# queue all commands waiting for a response
 	CAPTURE_QUEUE = []
-	CAPTURE_HISTORY = []
-	
-	# keep track of current room
+
+	# used to track current room for command overrides
 	CURRENT_ROOM_ID = False
-	
+
 	# state data; initially False
 	state = False
 	
@@ -63,7 +62,7 @@ class Sensor:
 		# no data yet...
 		return False
 		
-	# collapse to WORLDSTATE data
+	# TODO: collapse to WORLDSTATE data
 	# UNIVERSAL FORMATTING (should apply to all MUDs)
 	# NOTHING MUD-SPECIFIC BELOW THIS LINE!!!!!
 	def _format(self, captured_data):
@@ -151,12 +150,6 @@ class Sensor:
 			if self._stop(sText):
 				# get captured data
 				captured = self._getNamedCaptures()
-				
-				# set new room id
-				if 'room' in captured:
-					room_id = captured['room']['identifier']
-					if self.CURRENT_ROOM_ID != room_id:
-						self.CURRENT_ROOM_ID = room_id
 				
 				if 'item' in captured and 'items' in captured:
 					captured.pop('item')
@@ -251,7 +244,6 @@ class Sensor:
 		# is this the ending capture?
 		if re.search(self.active['captures'][-1], sText):
 			self.active['status'] = STATUS_SUCCESS
-			self.CAPTURE_HISTORY.append(self.active)
 			self.CAPTURE_QUEUE.pop(0)
 			return True
 			

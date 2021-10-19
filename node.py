@@ -3,12 +3,18 @@ from utils import *
 class Node:
 
 	def __init__(self, state):
+		print('Node data:')
+		print(state)
+		print('-------')
 		parent_node = state['parent']
 		
 		self.id = state['identifier']
 		self.name = state['name']
 		self.action = state['action']
 		self.edges = {}
+		
+		# save all state data
+		self.data = state
 		
 		if parent_node:
 			self.path_cost = parent_node.path_cost + 1
@@ -46,9 +52,6 @@ class Node:
 			self.x = parent_node.x + offset_x
 			self.y = parent_node.y + offset_y
 
-	# def expand(self, node):
-	# 	self.edges[node.action] = node.id
-		
 	def expanded(self):
 		# look for any False (unexplored) actions
 		return not [a for a in self.edges if not self.edges[a]]

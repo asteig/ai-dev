@@ -113,20 +113,19 @@ class McCounter:
 	# keep track of all the orders
 	ORDERS = {}
 	
-	drinks = ['McCola', 'McWobbler', 'McJasmin Tea', 'McWater']
+	drinks = ['McCola', 'McWobbler', 'McJasmin', 'McWater']
 	
 	menu = {}
 	
 	def __init__(self):
-		# run pre-req functions...
-		self.methods = [m for m in dir(self) if not m.startswith('__')]
+		pass
 
 	# are item1 and item2 a combo?
 	# return price
 	def _combo(self, item1, item2):
 		pass
 
-	# parse the menu and create a lookup table for prices
+	# parse the menu and create a lookup table for prisces
 	def list_(self, data):
 		colorNote('parse the menu.....')
 		print('DATA!!!!')
@@ -160,65 +159,6 @@ class McCounter:
 		print('TAKE DATA:')
 		print(data)
 
-		
-		'''
-		
-		order_txt = data['order']['txt']
-		
-		# normalize; split combos
-		order_txt = order_txt.replace(' and ', ',')
-		order_list = order_txt.split(',')
-		
-		# all items should have Mc somewhere in them...
-		mc_items = [item.strip() for item in order_list if 'Mc' in item]
-
-		# for cleaned up items
-		order_items = {}
-		
-		# remove verbal fluff from beginning of order text
-		for item in mc_items:
-			new_item = {}
-			item = item.replace(' like ', ' want ')
-			if ' want ' in item:
-				item = item.split(' want ')[1].strip()
-			
-			# normalize product names between menu and order
-			for menu_item in self.menu:
-				if menu_item in item:
-					new_item['name'] = menu_item
-					
-			# how many?
-			qty = 1
-			for num_word in WORD_NUM:
-				# default quantity
-				if item.startswith(num_word):
-					qty = WORD_NUM[num_word]
-			
-			new_item['qty'] = qty
-			new_item['mc_name'] = re.findall(r'(Mc\w+)', new_item['name'])
-
-			order_items[new_item['name']] = new_item
-		
-		# dev: verify the order is correct
-		print('ORDER ITEMS:')
-		for item_name in order_items:
-			print(item_name)
-		print('-------------------')
-		print()
-
-		
-		# is there a special combo price?
-		for item1 in order_items:
-			menu_item = self.menu[item1]
-			if 'combo' in menu_item:
-				item2 = menu_item['combo']
-				# did cx order both items?
-				print(item1, '+', item2)
-				if item2 in order_items:
-					print('COMBO PRICE:', menu_item['price'])
-			else:
-				print('SINGLE PRICE:', menu_item['price'])
-	'''
 	# handles 'charge' command's response
 	def charge_(self, data):
 		order = data['order']['txt']

@@ -102,6 +102,7 @@ class Expand(Mission):
 		unexplored = [n_id for n_id in self.EXPLORED if not self.EXPLORED[n_id].expanded()]
 		return unexplored
 	
+	# should probably also be in parent class...
 	def _serialize(self):
 		self.data['map'] = {}
 		for node_id in self.EXPLORED:

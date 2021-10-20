@@ -1,6 +1,5 @@
 from collections.abc import Mapping
 from datetime import datetime, timezone
-from collections.abc import Mapping
 import json
 import uuid
 import operator
@@ -82,7 +81,10 @@ def WAIT(queue={}, cmd_id='0'):
 	
 	print('out of runs!')
 
+def UNIQUE_ID():
+	return uuid.uuid4()
 
+# common reference dictionaries
 direction_alias = {
 	'look': 'l',
 	'north': 'n',
@@ -93,10 +95,9 @@ direction_alias = {
 	'northwest': 'nw',
 	'southeast': 'se',
 	'southwest': 'sw',
+	'up': 'up',
+	'down': 'down',
 }
-
-def UNIQUE_ID():
-	return uuid.uuid4()
 
 ALIAS_DIRECTION = {v: k for k, v in direction_alias.items()}
 
@@ -110,6 +111,6 @@ REVERSE_ACTION = {
 	'se': 'nw',
 	'sw': 'ne',
 	'l': 'l',
-	# 'up': 'down',
-	# 'down': 'up'
+	'up': 'down',
+	'down': 'up'
 }

@@ -11,15 +11,20 @@ class Expand(Mission):
 	
 	status = STATUS_QUEUED
 	prev_id = False
-	
+
+	# action history
+	sequence = []
+
 	# TODO: move to tasks
 	def next(self, percept):
+		
 		# goal check!
 		if self.status == STATUS_SUCCESS:
 			# nothing left to explore...
 			colorNote('~*~*~*~*~*~*~*~ALL EXPLORED!!!~*~*~*~*~*~*~*~')
-			self._serialize()
-			return self.data
+			# self._serialize()
+			# return self.data
+			print('sequence:', self.sequence)
 		
 		# make sure mission is active (since 'next' is running...)
 		self.status = STATUS_ACTIVE
@@ -72,11 +77,6 @@ class Expand(Mission):
 		self.prev_id = node.id
 
 		# what action next?
-		return self._utility(node)
-	
-	# TODO: shortest path
-	def _utility(self, node):
-		
 		# our current room has unexplored exits
 		if node.id in self._frontier():
 			# return first unexplored edge...

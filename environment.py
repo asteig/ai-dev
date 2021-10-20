@@ -1,5 +1,6 @@
 # standard python libraries
 import json
+import sys
 from sh import tail
 import time
 from uuid import uuid4
@@ -52,7 +53,7 @@ class Environment:
 		file.close()
 	
 	def start(self):
-		# clear message log
+		# reset command log
 		file = open(REMOTE_COMMANDS_SRC, 'w')
 		file.write('')
 		file.close()
@@ -70,4 +71,3 @@ class Environment:
 						colorNote('no next action :)')
 			# repeat forever! :D
 			
-		

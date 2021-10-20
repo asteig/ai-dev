@@ -120,11 +120,6 @@ class McCounter:
 	def __init__(self):
 		pass
 
-	# are item1 and item2 a combo?
-	# return price
-	def _combo(self, item1, item2):
-		pass
-
 	# parse the menu and create a lookup table for prisces
 	def list_(self, data):
 		colorNote('parse the menu.....')

@@ -23,6 +23,12 @@ class Agent:
 	# all percepts combined into a single worldstate
 	WORLDSTATE = {}
 
+	# action history (resets every run)
+	sequence = []
+	
+	# current position in action sequence (above)
+	pos = 0
+
 	# current "view" of the agents
 	percept = False
 	
@@ -35,9 +41,6 @@ class Agent:
 			print('CURRENT_MISSION:', CURRENT_MISSION)
 			self.mission = CURRENT_MISSION
 		
-		# what does the agent want?
-		self.goals = params['goals'] if 'goals' in params else False
-		
 		# TODO: have agent meander towards goals
 		# handle existential crises
 		# if not goals:
@@ -48,6 +51,8 @@ class Agent:
 	def _actions(self, state=False):
 		return
 
+	# TODO: goal function???
+
 	# update internal state, choose next action
 	def next(self, percept):
 		print('YO!!!')
@@ -55,10 +60,11 @@ class Agent:
 		# update internal state
 		self.percept = percept
 		
-		# TODO: should be "task"
-		# should we be expanding the map?
+		# TODO: handle no missions....
 		if self.mission:
-			print('here')
-			# expand the internal map
 			next_action = self.mission.next(percept)
+			# add next action to internal history
+			self.sequence.append(next_action)
+			print('sequence:', self.sequence)
 			return next_action
+

@@ -35,22 +35,25 @@ class Node:
 		
 		# get x-y coords
 		offset = {
-			'n':    [  0,  -1],
-			's':    [  0,   1],
-			'e':    [  1,   0],
-			'w':    [ -1,   0],
-			# 'up':   [ -1,  -2],
-			# 'down': [  1,   2],
+			'n':    	[  0, -1,  0],
+			's':    	[  0,  1,  0],
+			'e':    	[  1,  0,  0],
+			'w':    	[ -1,  0,  0],
+			# up / down a level (z-index)
+			'up':   	[  0,  0,  1],
+			'down':   [  0,  0, -1],
 		}
 		
 		# start at origin
 		if not parent_node or self.action not in offset:
 			self.x = 0
 			self.y = 0
+			self.z = 0
 		else:
-			offset_x, offset_y = offset[self.action]
+			offset_x, offset_y, offset_z = offset[self.action]
 			self.x = parent_node.x + offset_x
 			self.y = parent_node.y + offset_y
+			self.z = parent_node.z + offset_z
 
 	def expanded(self):
 		# look for any False (unexplored) actions
@@ -59,4 +62,3 @@ class Node:
 	# get all available actions (directional only)
 	def actions(self):
 		return self.edges
-		
